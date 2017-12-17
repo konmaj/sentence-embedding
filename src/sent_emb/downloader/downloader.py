@@ -5,30 +5,58 @@ from shutil import unpack_archive
 
 DOWNLOAD_DIR = Path('/', 'opt', 'resources')
 
-
-def get_datasets():
-    print('Ensure that datasets exist and download if not')
-
+STS_URLS = {
+    'STS12' : 'http://ixa2.si.ehu.es/stswiki/images/4/40/STS2012-en-test.zip', 
+    'STS13' : 'http://ixa2.si.ehu.es/stswiki/images/2/2f/STS2013-en-test.zip',
+    'STS14' : 'http://ixa2.si.ehu.es/stswiki/images/8/8c/STS2014-en-test.zip',
+    'STS15' : 'http://ixa2.si.ehu.es/stswiki/images/d/da/STS2015-en-test.zip',
+    'STS16' : 'http://ixa2.si.ehu.es/stswiki/images/9/98/STS2016-en-test.zip',
+}
+STS_DIRS = { sts : DOWNLOAD_DIR.joinpath('datasets', sts) for sts in STS_URLS.keys() }
 
 GLOVE_URL = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
-GLOVE_SIZE = 2.2 #GB
 GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
-GLOVE_ZIP = GLOVE_DIR.joinpath(Path(GLOVE_URL).name)
+
+
+def mkdir_if_not_exist(dir_path):
+    if not dir_path.is_dir():
+        dir_path.mkdir(parents=True, exist_ok=True)
+        return True
+    else:
+        return False
+
+
+def zip_download_and_extract(url, dir_path):
+    dir_pathname = str(dir_path.resolve())
+    zip_path = dir_path.joinpath(Path(url).name)
+    zip_pathname = str(zip_path.resolve())
+    
+    print('Downloading from', url)
+    urlretrieve(url, zip_pathname)
+    
+    print('Extracting into', dir_pathname)
+    unpack_archive(zip_pathname, extract_dir=dir_pathname)
+
+    zip_path.unlink()
+
+
+def get_datasets():
+    print('Checking for datasets:')
+    
+    for sts in STS_URLS.keys():
+        if mkdir_if_not_exist(STS_DIRS[sts]):
+            print(sts, 'dataset not found')
+            zip_download_and_extract(STS_URLS[sts], STS_DIRS[sts])
+        else:
+            print('Found', sts, 'dataset')
 
 
 def get_embeddings():
     print('Checking for embeddings:')
     
-    if not GLOVE_DIR.exists():
-        GLOVE_DIR.mkdir(parents=True, exist_ok=True)
-        
-        print('  GloVe embeddings not found. Downloading', GLOVE_URL, '(' + str(GLOVE_SIZE) + 'GB)')
-        urlretrieve(GLOVE_URL, str(GLOVE_ZIP))
-        
-        print('  Unpacking', GLOVE_ZIP)
-        unpack_archive(str(GLOVE_ZIP), extract_dir=str(GLOVE_DIR))
-        
-        GLOVE_ZIP.unlink()
+    if mkdir_if_not_exist(GLOVE_DIR):
+        print('GloVe embeddings not found')
+        zip_download_and_extract(GLOVE_URL, GLOVE_DIR)
     else:
-        print('  Found GloVe embeddings')
+        print('Found GloVe embeddings')
 
