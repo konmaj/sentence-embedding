@@ -2,6 +2,9 @@
 
 from sent_emb.algorithms import glove_embeddings_mean
 from sent_emb.downloader import downloader
+from sent_emb.evaluation import sts
 
 downloader.get_datasets()
 downloader.get_embeddings()
+
+sts.eval_sts15(glove_embeddings_mean.embeddings)
