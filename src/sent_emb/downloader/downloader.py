@@ -1,12 +1,13 @@
 from pathlib import Path
 from urllib.request import urlretrieve
-from shutil import unpack_archive
+from shutil import unpack_archive, move
+from os import listdir, rmdir
 
 
 DOWNLOAD_DIR = Path('/', 'opt', 'resources')
 
 STS_URLS = {
-    'STS12' : 'http://ixa2.si.ehu.es/stswiki/images/4/40/STS2012-en-test.zip', 
+    'STS12' : 'http://ixa2.si.ehu.es/stswiki/images/4/40/STS2012-en-test.zip',
     'STS13' : 'http://ixa2.si.ehu.es/stswiki/images/2/2f/STS2013-en-test.zip',
     'STS14' : 'http://ixa2.si.ehu.es/stswiki/images/8/8c/STS2014-en-test.zip',
     'STS15' : 'http://ixa2.si.ehu.es/stswiki/images/d/da/STS2015-en-test.zip',
@@ -33,11 +34,40 @@ def zip_download_and_extract(url, dir_path):
     
     print('Downloading from', url)
     urlretrieve(url, zip_pathname)
-    
+
     print('Extracting into', dir_pathname)
     unpack_archive(zip_pathname, extract_dir=dir_pathname)
 
     zip_path.unlink()
+
+
+def get_sts_dataset(sts):
+    '''
+    Gets proper STS dataset.
+
+    1) Downloads and extracts proper STS dataset.
+    2) Unifies names of files and directories if needed.
+    '''
+
+    # prepare directory structure
+    data_path = STS_DIRS[sts].joinpath('data')
+    data_path.mkdir()
+
+    out_path = Path(STS_DIRS[sts].joinpath('out'))
+    out_path.mkdir()
+
+    # get data
+    zip_download_and_extract(STS_URLS[sts], data_path)
+
+    # remove redundant directory
+    dir_name_list = listdir(data_path)
+    assert len(dir_name_list) == 1
+    dir_name = dir_name_list[0]
+    src_path = data_path.joinpath(dir_name)
+
+    for file_name in listdir(src_path):
+        move(src_path.joinpath(file_name), data_path.joinpath(file_name))
+    rmdir(src_path)
 
 
 def get_datasets():
@@ -46,7 +76,7 @@ def get_datasets():
     for sts in STS_URLS.keys():
         if mkdir_if_not_exist(STS_DIRS[sts]):
             print(sts, 'dataset not found')
-            zip_download_and_extract(STS_URLS[sts], STS_DIRS[sts])
+            get_sts_dataset(sts)
         else:
             print('Found', sts, 'dataset')
 

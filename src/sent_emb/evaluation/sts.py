@@ -27,11 +27,10 @@ def compute_similarity(emb_pairs):
     return np.array(result)
 
 
-def generate_similarity_file(emb_func, data_dir, input_name, output_name):
+def generate_similarity_file(emb_func, input_path, output_path):
 
     # read test data
     sents = []
-    input_path = data_dir.joinpath(input_name)
 
     with open(input_path, 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -49,7 +48,6 @@ def generate_similarity_file(emb_func, data_dir, input_name, output_name):
     similarities = compute_similarity(embs)
 
     # write file with similarities
-    output_path = data_dir.joinpath(output_name)
     with open(output_path, 'w+') as out_file:
         for sim in similarities:
             out_file.write('{}\n'.format(sim))
@@ -58,30 +56,35 @@ def generate_similarity_file(emb_func, data_dir, input_name, output_name):
 def eval_sts15(emb_func):
     test_names = ['answers-forums', 'answers-students', 'belief', 'headlines', 'images']
 
-    data_dir = Path('/', 'opt', 'resources', 'datasets', 'STS15', 'test_evaluation_task2a')
-    input_base = 'STS.input'
-    output_base = 'STS.output'
-    gs_base = 'STS.gs'
+    sts_dir = Path('/', 'opt', 'resources', 'datasets', 'STS15')
+    data_dir = sts_dir.joinpath('data')
+    out_dir = sts_dir.joinpath('out')
+    in_prefix = 'STS.input'
+    out_prefix = 'STS.output'
+    gs_prefix = 'STS.gs'
 
     log_msg = ''
 
     for test_name in test_names:
-        input_name = '{}.{}.txt'.format(input_base, test_name)
-        output_name = '{}.{}.txt'.format(output_base, test_name)
-        gs_out = '{}.{}.txt'.format(gs_base, test_name)
+        in_name = '{}.{}.txt'.format(in_prefix, test_name)
+        out_name = '{}.{}.txt'.format(out_prefix, test_name)
+        gs_name = '{}.{}.txt'.format(gs_prefix, test_name)
 
-        print('Evaluating on file: {}'.format(input_name))
+        print('Evaluating on file: {}'.format(in_name))
 
         # generate out
-        generate_similarity_file(emb_func, data_dir, input_name, output_name)
+        in_path = data_dir.joinpath(in_name)
+        out_path = out_dir.joinpath(out_name)
+        gs_path = data_dir.joinpath(gs_name)
+
+        generate_similarity_file(emb_func, in_path, out_path)
 
         # compare out with gold standard
-        script = 'correlation-noconfidence.pl'
+        script = data_dir.joinpath('correlation-noconfidence.pl')
 
         score = subprocess.check_output(
-            ['perl', script, gs_out, output_name],
+            ['perl', script, gs_path, out_path],
             universal_newlines=True,
-            cwd=data_dir,
         )
 
         print(score)
