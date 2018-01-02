@@ -8,6 +8,17 @@ from pathlib import Path
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 
 
+TEST_NAMES = {
+    12: ['MSRpar', 'MSRvid', 'SMTeuroparl', 'surprise.OnWN', 'surprise.SMTnews'],
+    13: ['headlines', 'OnWN', 'FNWN'],
+    14: ['deft-forum', 'deft-news', 'headlines', 'images', 'OnWN', 'tweet-news'],
+    15: ['answers-forums', 'answers-students', 'belief', 'headlines', 'images'],
+}
+
+DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
+GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS15', 'data', 'correlation-noconfidence.pl')
+
+
 def vector_len(vec):
     return np.sum(np.square(vec)) ** 0.5
 
@@ -53,19 +64,23 @@ def generate_similarity_file(emb_func, input_path, output_path):
             out_file.write('{}\n'.format(sim))
 
 
-def eval_sts15(emb_func):
-    test_names = ['answers-forums', 'answers-students', 'belief', 'headlines', 'images']
+def eval_sts_year(emb_func, year):
+    assert year in TEST_NAMES
 
-    sts_dir = Path('/', 'opt', 'resources', 'datasets', 'STS15')
+    sts_name = 'STS{}'.format(year)
+    print('Evaluating on datasets from {}'.format(sts_name))
+
+    sts_dir = Path('/', 'opt', 'resources', 'datasets', sts_name)
     data_dir = sts_dir.joinpath('data')
     out_dir = sts_dir.joinpath('out')
+
     in_prefix = 'STS.input'
     out_prefix = 'STS.output'
     gs_prefix = 'STS.gs'
 
     log_msg = ''
 
-    for test_name in test_names:
+    for test_name in TEST_NAMES[year]:
         in_name = '{}.{}.txt'.format(in_prefix, test_name)
         out_name = '{}.{}.txt'.format(out_prefix, test_name)
         gs_name = '{}.{}.txt'.format(gs_prefix, test_name)
@@ -80,7 +95,7 @@ def eval_sts15(emb_func):
         generate_similarity_file(emb_func, in_path, out_path)
 
         # compare out with gold standard
-        script = data_dir.joinpath('correlation-noconfidence.pl')
+        script = GRADING_SCRIPT_PATH
 
         score = subprocess.check_output(
             ['perl', script, gs_path, out_path],
@@ -94,6 +109,12 @@ def eval_sts15(emb_func):
     mkdir_if_not_exist(log_dir)
 
     cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-    log_name = 'STS15-{}.txt'.format(cur_time)
+    log_name = '{}-{}.txt'.format(sts_name, cur_time)
     with open(log_dir.joinpath(log_name), 'w+') as log_file:
         log_file.write(log_msg)
+
+
+def eval_sts_all(emb_func):
+    for year in TEST_NAMES:
+        eval_sts_year(emb_func, year)
+

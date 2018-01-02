@@ -7,4 +7,4 @@ from sent_emb.evaluation import sts
 downloader.get_datasets()
 downloader.get_embeddings()
 
-sts.eval_sts15(glove_embeddings_mean.embeddings)
+sts.eval_sts_all(glove_embeddings_mean.embeddings)
