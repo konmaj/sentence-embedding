@@ -83,7 +83,10 @@ def eval_sts_year(emb_func, year):
     out_prefix = 'STS.output'
     gs_prefix = 'STS.gs'
 
-    log_msg = ''
+    mkdir_if_not_exist(LOG_PATH)
+    cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+    log_file_name = '{}-{}.txt'.format(sts_name, cur_time)
+    log_file_path = LOG_PATH.joinpath(log_file_name)
 
     for test_name in TEST_NAMES[year]:
         in_name = '{}.{}.txt'.format(in_prefix, test_name)
@@ -107,15 +110,10 @@ def eval_sts_year(emb_func, year):
             universal_newlines=True,
         )
 
-        print(score)
-        log_msg += 'Test name: {}\n{}\n'.format(test_name, score)
-
-    mkdir_if_not_exist(LOG_PATH)
-
-    cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-    log_name = '{}-{}.txt'.format(sts_name, cur_time)
-    with open(LOG_PATH.joinpath(log_name), 'w+') as log_file:
-        log_file.write(log_msg)
+        log_msg = 'Test name: {}\n{}\n'.format(test_name, score)
+        with open(log_file_path, 'a+') as log_file:
+            log_file.write(log_msg)
+        print(log_msg)
 
 
 def eval_sts_all(emb_func):
