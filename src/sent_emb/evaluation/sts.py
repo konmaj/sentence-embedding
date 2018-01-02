@@ -17,7 +17,10 @@ TEST_NAMES = {
 }
 
 DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
-GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS15', 'data', 'correlation-noconfidence.pl')
+LOG_PATH = Path('/', 'opt', 'resources', 'log')
+
+# Script from STS16 seems to be backward compatible with file formats from former years.
+GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS16', 'data', 'correlation-noconfidence.pl')
 
 
 def vector_len(vec):
@@ -72,7 +75,7 @@ def eval_sts_year(emb_func, year):
     sts_name = 'STS{}'.format(year)
     print('Evaluating on datasets from {}'.format(sts_name))
 
-    sts_dir = Path('/', 'opt', 'resources', 'datasets', sts_name)
+    sts_dir = DATASETS_PATH.joinpath(sts_name)
     data_dir = sts_dir.joinpath('data')
     out_dir = sts_dir.joinpath('out')
 
@@ -105,14 +108,13 @@ def eval_sts_year(emb_func, year):
         )
 
         print(score)
-        log_msg += 'test name: {}\n{}\n'.format(test_name, score)
+        log_msg += 'Test name: {}\n{}\n'.format(test_name, score)
 
-    log_dir = Path('/', 'opt', 'resources', 'log')
-    mkdir_if_not_exist(log_dir)
+    mkdir_if_not_exist(LOG_PATH)
 
     cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
     log_name = '{}-{}.txt'.format(sts_name, cur_time)
-    with open(log_dir.joinpath(log_name), 'w+') as log_file:
+    with open(LOG_PATH.joinpath(log_name), 'w+') as log_file:
         log_file.write(log_msg)
 
 
