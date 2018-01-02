@@ -13,6 +13,7 @@ TEST_NAMES = {
     13: ['headlines', 'OnWN', 'FNWN'],
     14: ['deft-forum', 'deft-news', 'headlines', 'images', 'OnWN', 'tweet-news'],
     15: ['answers-forums', 'answers-students', 'belief', 'headlines', 'images'],
+    16: ['answer-answer', 'headlines', 'plagiarism', 'postediting', 'question-question'],
 }
 
 DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
@@ -46,8 +47,9 @@ def generate_similarity_file(emb_func, input_path, output_path):
     with open(input_path, 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in test_reader:
-            assert len(row) == 2
-            sents.extend(row)
+            assert len(row) == 2 \
+                or len(row) == 4 # STS16 contains also source of each sentence
+            sents.extend(row[:2])
     sents = np.array(sents)
 
     # compute embeddings

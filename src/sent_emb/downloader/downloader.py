@@ -41,6 +41,18 @@ def zip_download_and_extract(url, dir_path):
     zip_path.unlink()
 
 
+def normalize_sts16_prefix(data_path):
+    '''
+    Converts names of files as in example: STS2016.gs.headlines.txt -> STS.gs.headlines.txt
+    '''
+    for file_name in listdir(data_path):
+        if file_name[:3] == 'STS':
+            assert file_name[:7] == 'STS2016'
+            old_name = data_path.joinpath(file_name)
+            new_name = data_path.joinpath('STS' + file_name[7:])
+            move(old_name, new_name)
+
+
 def get_sts_dataset(sts):
     '''
     Gets proper STS dataset.
@@ -68,6 +80,10 @@ def get_sts_dataset(sts):
     for file_name in listdir(src_path):
         move(src_path.joinpath(file_name), data_path.joinpath(file_name))
     rmdir(src_path)
+
+    # normalize file names
+    if sts == 'STS16':
+        normalize_sts16_prefix(data_path)
 
 
 def get_datasets():
