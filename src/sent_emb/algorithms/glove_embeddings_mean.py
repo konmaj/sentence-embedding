@@ -1,12 +1,16 @@
 import numpy as np
 from pathlib import Path
 
+from sent_emb.algorithms.unkown import UnknownVector
+
 DOWNLOAD_DIR = Path('/', 'opt', 'resources')
 GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
 GLOVE_FILE = GLOVE_DIR.joinpath('glove.840B.300d.txt')
 GLOVE_LINES = 2196017
+GLOVE_DIM = 300
 
-def embeddings(sents):
+
+def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
     '''
         sents: numpy array of sentences to compute embeddings
 
@@ -17,7 +21,7 @@ def embeddings(sents):
     where = {}
     words = set()
 
-    result = np.zeros((sents.shape[0], 300), dtype=np.float)
+    result = np.zeros((sents.shape[0], GLOVE_DIM), dtype=np.float)
     count = np.zeros((sents.shape[0], 1))
 
     for idx, sent in enumerate(sents):
@@ -37,18 +41,23 @@ def embeddings(sents):
         word = line[0]
         vec = np.array(line[1:], dtype=np.float)
         words.add(word)
+        unknown.see(word, vec)
         if word in where:
             for idx in where[word]:
                 result[idx] += vec
                 count[idx][0] += 1
         line_count += 1
         if line_count % (100 * 1000) == 0:
-            print ('  line_count: ' + str(line_count))
-    result /= count
+            print('  line_count: ' + str(line_count))
 
     for word in where:
-        if not word in words:
-            print ('Not found word \'' + word + '\'')
+        if word not in words:
+            for idx in where[word]:
+                result[idx] += unknown.get(word)
+                count[idx][0] += 1
+            print('Not found word \'' + word + '\'')
+
+    result /= count
 
     return result
 
