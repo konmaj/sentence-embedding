@@ -6,8 +6,8 @@ import numpy as np
 from pathlib import Path
 from nltk.tokenize import word_tokenize
 
+from sent_emb.algorithms.glove_utility import create_glove_subset, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
-
 
 TEST_NAMES = {
     12: ['MSRpar', 'MSRvid', 'SMTeuroparl', 'surprise.OnWN', 'surprise.SMTnews'],
@@ -43,18 +43,54 @@ def compute_similarity(emb_pairs):
     return np.array(result)
 
 
-def generate_similarity_file(emb_func, input_path, output_path):
+def get_sts_path(year):
+    assert year in TEST_NAMES
+    return DATASETS_PATH.joinpath('STS{}'.format(year))
 
-    # read test data
+
+def get_sts_input_path(year, test_name):
+    assert year in TEST_NAMES
+
+    sts_path = get_sts_path(year)
+    input_name = 'STS.input.{}.txt'.format(test_name)
+
+    return sts_path.joinpath('data', input_name)
+
+
+def get_sts_gs_path(year, test_name):
+    assert year in TEST_NAMES
+
+    sts_path = get_sts_path(year)
+    gs_name = 'STS.gs.{}.txt'.format(test_name)
+
+    return sts_path.joinpath('data', gs_name)
+
+
+def get_sts_output_path(year, test_name):
+    assert year in TEST_NAMES
+
+    sts_path = get_sts_path(year)
+    output_name = 'STS.output.{}.txt'.format(test_name)
+
+    return sts_path.joinpath('out', output_name)
+
+
+def read_sts_input(file_path):
     sents = []
-
-    with open(input_path, 'r') as test_file:
+    with open(file_path, 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in test_reader:
             assert len(row) == 2 \
                 or len(row) == 4 # STS16 contains also source of each sentence
             sents.extend(row[:2])
-    sents = np.array([word_tokenize(s) for s in sents])
+            
+    return np.array([word_tokenize(s) for s in sents])
+
+
+def generate_similarity_file(emb_func, input_path, output_path):
+
+    # read test data
+    sents = read_sts_input(input_path)
 
     # compute embeddings
     embs = emb_func(sents)
@@ -73,33 +109,21 @@ def generate_similarity_file(emb_func, input_path, output_path):
 def eval_sts_year(emb_func, year):
     assert year in TEST_NAMES
 
-    sts_name = 'STS{}'.format(year)
-    print('Evaluating on datasets from {}'.format(sts_name))
-
-    sts_dir = DATASETS_PATH.joinpath(sts_name)
-    data_dir = sts_dir.joinpath('data')
-    out_dir = sts_dir.joinpath('out')
-
-    in_prefix = 'STS.input'
-    out_prefix = 'STS.output'
-    gs_prefix = 'STS.gs'
+    print('Evaluating on datasets from STS{}'.format(year))
 
     mkdir_if_not_exist(LOG_PATH)
     cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-    log_file_name = '{}-{}.txt'.format(sts_name, cur_time)
+    log_file_name = 'STS{}-{}.txt'.format(year, cur_time)
     log_file_path = LOG_PATH.joinpath(log_file_name)
 
     for test_name in TEST_NAMES[year]:
-        in_name = '{}.{}.txt'.format(in_prefix, test_name)
-        out_name = '{}.{}.txt'.format(out_prefix, test_name)
-        gs_name = '{}.{}.txt'.format(gs_prefix, test_name)
 
-        print('Evaluating on file: {}'.format(in_name))
+        print('Evaluating on test {} from STS{}'.format(test_name, year))
 
         # generate out
-        in_path = data_dir.joinpath(in_name)
-        out_path = out_dir.joinpath(out_name)
-        gs_path = data_dir.joinpath(gs_name)
+        in_path = get_sts_input_path(year, test_name)
+        out_path = get_sts_output_path(year, test_name)
+        gs_path = get_sts_gs_path(year, test_name)
 
         generate_similarity_file(emb_func, in_path, out_path)
 
@@ -111,13 +135,34 @@ def eval_sts_year(emb_func, year):
             universal_newlines=True,
         )
 
+        # update log file
         log_msg = 'Test name: {}\n{}\n'.format(test_name, score)
         with open(log_file_path, 'a+') as log_file:
             log_file.write(log_msg)
         print(log_msg)
 
 
+def create_glove_sts_subset():
+    #Create set of words which appeared in STS files
+    if GLOVE_FILE.exists():
+        print('Cropped GloVe file already exists')
+        return
+
+    sts_words = set()
+    for year, test_names in TEST_NAMES.items():
+        for test_name in test_names:
+            input_path = get_sts_input_path(year, test_name)
+
+            sents = read_sts_input(input_path)
+            for sent in sents:
+                for word in sent:
+                    sts_words.add(word)
+
+    create_glove_subset(sts_words)
+
+
 def eval_sts_all(emb_func):
+    create_glove_sts_subset()
     for year in TEST_NAMES:
         eval_sts_year(emb_func, year)
 
