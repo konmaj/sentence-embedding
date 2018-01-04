@@ -1,10 +1,7 @@
 import numpy as np
 from pathlib import Path
 
-DOWNLOAD_DIR = Path('/', 'opt', 'resources')
-GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
-GLOVE_FILE = GLOVE_DIR.joinpath('glove.840B.300d.txt')
-GLOVE_LINES = 2196017
+from sent_emb.algorithms.glove_utility import GLOVE_LINES, GLOVE_FILE, read_file
 
 def embeddings(sents):
     '''
@@ -33,28 +30,20 @@ def embeddings(sents):
                     where[word] = []
                 where[word].append(idx)
 
-    line_count = 0
-
-    print('Reading GloVe...')
-    print('  Lines overall: ' + str(GLOVE_LINES))
-    glove_file = open(GLOVE_FILE)
-    for line in glove_file:
-        line = line[:-1].split(' ')
-        word = line[0]
-        vec = np.array(line[1:], dtype=np.float)
+    def process(word, vec, _):
         words.add(word)
         if word in where:
             for idx in where[word]:
                 result[idx] += vec
                 count[idx][0] += 1
-        line_count += 1
-        if line_count % (100 * 1000) == 0:
-            print ('  line_count: ' + str(line_count))
+    print('Reading GloVe...')
+    print('  Lines overall: ' + str(GLOVE_LINES))
+    read_file(GLOVE_FILE, process, should_count=True)
     result /= count
 
     for word in where:
         if not word in words:
-            print ('Not found word \'' + word + '\'')
+            print('Not found word \'' + word + '\'')
 
     return result
 

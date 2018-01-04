@@ -5,8 +5,8 @@ import subprocess
 import numpy as np
 from pathlib import Path
 
+from sent_emb.algorithms.glove_utility import create_glove_subset, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
-
 
 TEST_NAMES = {
     12: ['MSRpar', 'MSRvid', 'SMTeuroparl', 'surprise.OnWN', 'surprise.SMTnews'],
@@ -115,8 +115,16 @@ def eval_sts_year(emb_func, year):
             log_file.write(log_msg)
         print(log_msg)
 
+def create_glove_sts_subset():
+    #Create set of words which appeared in STS files
+    sts_words = {'house', 'Bird', 'play', 'mother'}
+    if GLOVE_FILE.exists():
+        print('Cropped GloVe file already exists')
+    else:
+        create_glove_subset(sts_words)
 
 def eval_sts_all(emb_func):
+    create_glove_sts_subset()
     for year in TEST_NAMES:
         eval_sts_year(emb_func, year)
 
