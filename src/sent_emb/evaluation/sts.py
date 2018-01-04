@@ -83,7 +83,7 @@ def read_sts_input(file_path):
             assert len(row) == 2 \
                 or len(row) == 4 # STS16 contains also source of each sentence
             sents.extend(row[:2])
-
+            
     return np.array([word_tokenize(s) for s in sents])
 
 

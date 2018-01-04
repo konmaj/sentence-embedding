@@ -1,9 +1,12 @@
 import numpy as np
 from pathlib import Path
 
+from sent_emb.algorithms.unkown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_LINES, GLOVE_FILE, read_file
 
-def embeddings(sents):
+GLOVE_DIM = 300
+
+def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
     '''
         sents: numpy array of sentences to compute embeddings
 
@@ -14,7 +17,7 @@ def embeddings(sents):
     where = {}
     words = set()
 
-    result = np.zeros((sents.shape[0], 300), dtype=np.float)
+    result = np.zeros((sents.shape[0], GLOVE_DIM), dtype=np.float)
     count = np.zeros((sents.shape[0], 1))
 
     for idx, sent in enumerate(sents):
@@ -26,18 +29,22 @@ def embeddings(sents):
 
     def process(word, vec, _):
         words.add(word)
+        unknown.see(word, vec)
         if word in where:
             for idx in where[word]:
                 result[idx] += vec
                 count[idx][0] += 1
-    print('Reading GloVe...')
-    print('  Lines overall: ' + str(GLOVE_LINES))
+                
     read_file(GLOVE_FILE, process, should_count=True)
-    result /= count
-
+    
     for word in where:
-        if not word in words:
+        if word not in words:
+            for idx in where[word]:
+                result[idx] += unknown.get(word)
+                count[idx][0] += 1
             print('Not found word \'' + word + '\'')
+
+    result /= count
 
     return result
 

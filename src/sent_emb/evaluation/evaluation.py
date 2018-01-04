@@ -8,6 +8,7 @@ from sent_emb.evaluation import sts
 
 downloader.get_datasets()
 downloader.get_embeddings()
+downloader.get_resources()
 
 nltk.download('punkt')
 
