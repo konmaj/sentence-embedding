@@ -65,7 +65,7 @@ def get_sts_dataset(sts):
     data_path = STS_DIRS[sts].joinpath('data')
     data_path.mkdir()
 
-    out_path = Path(STS_DIRS[sts].joinpath('out'))
+    out_path = STS_DIRS[sts].joinpath('out')
     out_path.mkdir()
 
     # get data
