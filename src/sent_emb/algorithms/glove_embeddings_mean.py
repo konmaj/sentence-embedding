@@ -18,12 +18,6 @@ def embeddings(sents):
     count = np.zeros((sents.shape[0], 1))
 
     for idx, sent in enumerate(sents):
-        chars = [',', ':', '/', '(', ')', '?', '!', '.', '"', "$", '“', '”', '#', ';', '%']
-
-        for c in chars:
-            sent = sent.replace(c, ' ' + c + ' ')
-
-        sent = sent.split(' ')
         for word in sent:
             if word != '':
                 if word not in where:

@@ -4,6 +4,7 @@ import subprocess
 
 import numpy as np
 from pathlib import Path
+from nltk.tokenize import word_tokenize
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
@@ -53,7 +54,7 @@ def generate_similarity_file(emb_func, input_path, output_path):
             assert len(row) == 2 \
                 or len(row) == 4 # STS16 contains also source of each sentence
             sents.extend(row[:2])
-    sents = np.array(sents)
+    sents = np.array([word_tokenize(s) for s in sents])
 
     # compute embeddings
     embs = emb_func(sents)
