@@ -10,6 +10,4 @@ downloader.get_datasets()
 downloader.get_embeddings()
 downloader.get_resources()
 
-nltk.download('punkt')
-
 sts.eval_sts_all(glove_embeddings_mean.embeddings)
