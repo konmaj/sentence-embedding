@@ -1,6 +1,7 @@
 import csv
 import datetime
 import subprocess
+import re
 
 import numpy as np
 from pathlib import Path
@@ -75,6 +76,10 @@ def get_sts_output_path(year, test_name):
     return sts_path.joinpath('out', output_name)
 
 
+def get_cur_time_str():
+    return datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+
+
 def read_sts_input(file_path):
     sents = []
     with open(file_path, 'r') as test_file:
@@ -88,7 +93,13 @@ def read_sts_input(file_path):
 
 
 def generate_similarity_file(emb_func, input_path, output_path):
+    '''
+    Runs given embedding function ('emb_func') on a single STS task (without
+    computing score).
 
+    Writes output in format described in section Output Files of file
+    resources/datasets/STS16/data/README.txt
+    '''
     # read test data
     sents = read_sts_input(input_path)
 
@@ -106,13 +117,28 @@ def generate_similarity_file(emb_func, input_path, output_path):
             out_file.write('{}\n'.format(sim))
 
 
-def eval_sts_year(emb_func, year):
+def get_grad_script_res(output):
+    res = re.search(r'^Pearson: (\d\.\d{5})$', output)
+    assert res is not None
+    return float(res.groups()[0]) # throws exception in case of wrong conversion
+
+
+def eval_sts_year(emb_func, year, year_file=False):
+    '''
+    Evaluates given embedding function on STS inputs from given year.
+
+    If year_file=True, generates file with results in the LOG_PATH directory.
+
+    Returns list of "Pearson's r * 100" of each input
+    (ordered as in TEST_NAMES[year]).
+    '''
     assert year in TEST_NAMES
 
     print('Evaluating on datasets from STS{}'.format(year))
+    results = []
 
     mkdir_if_not_exist(LOG_PATH)
-    cur_time = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+    cur_time = get_cur_time_str()
     log_file_name = 'STS{}-{}.txt'.format(year, cur_time)
     log_file_path = LOG_PATH.joinpath(log_file_name)
 
@@ -129,21 +155,30 @@ def eval_sts_year(emb_func, year):
 
         # compare out with gold standard
         script = GRADING_SCRIPT_PATH
-
-        score = subprocess.check_output(
+        output = subprocess.check_output(
             ['perl', script, gs_path, out_path],
             universal_newlines=True,
         )
+        score = get_grad_script_res(output) * 100
+
+        results.append(score)
 
         # update log file
-        log_msg = 'Test name: {}\n{}\n'.format(test_name, score)
-        with open(log_file_path, 'a+') as log_file:
-            log_file.write(log_msg)
+        log_msg = 'Test name: {}\n100*Pearson: {:7.3f}\n'.format(test_name, score)
         print(log_msg)
+        if year_file:
+            with open(log_file_path, 'a+') as log_file:
+                log_file.write(log_msg)
+
+    return results
 
 
 def create_glove_sts_subset():
-    #Create set of words which appeared in STS files
+    '''
+    1) Computes set of words which appeared in STS input files.
+    2) Creates reduced GloVe file, which contains only words that appeared
+       in STS.
+    '''
     if GLOVE_FILE.exists():
         print('Cropped GloVe file already exists')
         return
@@ -162,7 +197,35 @@ def create_glove_sts_subset():
 
 
 def eval_sts_all(emb_func):
+    '''
+    Evaluates given embedding function on all STS12-STS16 files.
+
+    Writes results in a new CSV file in LOG_PATH directory.
+    '''
     create_glove_sts_subset()
+
+    year_names = []
+    test_names = []
+    results = []
     for year in TEST_NAMES:
-        eval_sts_year(emb_func, year)
+        # evaluate on STS sets from given year
+        n_tests = len(TEST_NAMES[year])
+        year_res = eval_sts_year(emb_func, year)
+        assert len(year_res) == n_tests
+
+        # update lists with results
+        year_names.append('STS{}'.format(year))
+        year_names.extend(['' for _ in range(n_tests - 1)])
+        test_names.extend(TEST_NAMES[year])
+        results.extend(year_res)
+
+    # write complete log file
+    file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
+    file_path = LOG_PATH.joinpath(file_name)
+    with open(file_path, 'w+') as log_file:
+        writer = csv.writer(log_file, delimiter=',', quoting=csv.QUOTE_NONE)
+        writer.writerow(year_names)
+        writer.writerow(test_names)
+        writer.writerow(['{:.3f}'.format(res) for res in results])
+    print('Complete results are in file\n{}\n'.format(file_path))
 

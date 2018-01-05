@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import nltk
-
 from sent_emb.algorithms import glove_embeddings_mean
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts
