@@ -1,5 +1,3 @@
-import nltk
-
 from pathlib import Path
 from urllib.request import urlretrieve
 from shutil import unpack_archive, move
@@ -108,6 +106,3 @@ def get_embeddings():
     else:
         print('Found GloVe embeddings')
 
-
-def get_resources():
-    nltk.download('punkt')
