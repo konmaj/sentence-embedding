@@ -45,8 +45,3 @@ def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
     result /= count
 
     return result
-
-def test_run():
-    embeddings(np.array(['This is a very good sentence, my friend.',
-                        'Birdie lives in the United States.',
-                        '\"He is not a suspect anymore.\" John said.']))
