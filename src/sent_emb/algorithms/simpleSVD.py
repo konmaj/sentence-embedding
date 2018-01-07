@@ -5,7 +5,7 @@ from sent_emb.algorithms.unkown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
 
 
-def embeddings_param(sents, unknown, param_a, prob):
+def embeddings_param(sents, unknown, param_a, prob, unknown_prob_mult):
     '''
         sents: numpy array of sentences to compute embeddings
         unkown: handler of words not appearing in GloVe
@@ -42,8 +42,7 @@ def embeddings_param(sents, unknown, param_a, prob):
     for word in where:
         if word not in words:
             for idx in where[word]:
-                # Maybe we should decrease probability even more here
-                result[idx] += unknown.get(word) * param_a / (param_a + prob[word])
+                result[idx] += unknown.get(word) * param_a / (param_a + unknown_prob_mult * prob[word])
                 count[idx][0] += 1
 
     result /= count
@@ -72,4 +71,4 @@ def simple_prob(sents):
 
 
 def embeddings(sents):
-    return embeddings_param(sents, UnknownVector(GLOVE_DIM), 1, simple_prob(sents))
+    return embeddings_param(sents, UnknownVector(GLOVE_DIM), 0.001, simple_prob(sents), 1)
