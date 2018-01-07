@@ -2,9 +2,8 @@ import numpy as np
 from pathlib import Path
 
 from sent_emb.algorithms.unkown import UnknownVector
-from sent_emb.algorithms.glove_utility import GLOVE_LINES, GLOVE_FILE, read_file
+from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
 
-GLOVE_DIM = 300
 
 def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
     '''
@@ -35,14 +34,13 @@ def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
                 result[idx] += vec
                 count[idx][0] += 1
                 
-    read_file(GLOVE_FILE, process, should_count=True)
+    read_file(GLOVE_FILE, process)
     
     for word in where:
         if word not in words:
             for idx in where[word]:
                 result[idx] += unknown.get(word)
                 count[idx][0] += 1
-            print('Not found word \'' + word + '\'')
 
     result /= count
 

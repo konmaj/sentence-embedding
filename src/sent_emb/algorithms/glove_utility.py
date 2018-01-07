@@ -5,8 +5,8 @@ DOWNLOAD_DIR = Path('/', 'opt', 'resources')
 GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
 RAW_GLOVE_FILE = GLOVE_DIR.joinpath('glove.840B.300d.txt')
 RAW_GLOVE_LINES = 2196017
-GLOVE_LINES = 424242
 GLOVE_FILE = GLOVE_DIR.joinpath('glove_cropped.txt')
+GLOVE_DIM = 300
 
 def read_file(file_path, f, should_count = False):
     line_count = 0
