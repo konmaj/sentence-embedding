@@ -15,9 +15,6 @@ STS_URLS = {
 }
 STS_DIRS = { sts : DOWNLOAD_DIR.joinpath('datasets', sts) for sts in STS_URLS.keys() }
 
-GLOVE_URL = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
-GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
-
 
 def mkdir_if_not_exist(dir_path):
     if not dir_path.is_dir():
@@ -95,14 +92,3 @@ def get_datasets():
             get_sts_dataset(sts)
         else:
             print('Found', sts, 'dataset')
-
-
-def get_embeddings():
-    print('Checking for embeddings:')
-    
-    if mkdir_if_not_exist(GLOVE_DIR):
-        print('GloVe embeddings not found')
-        zip_download_and_extract(GLOVE_URL, GLOVE_DIR)
-    else:
-        print('Found GloVe embeddings')
-

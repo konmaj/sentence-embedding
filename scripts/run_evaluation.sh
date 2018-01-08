@@ -1,5 +1,7 @@
 #!/bin/bash
 
+./get_embeddings.sh || exit $?
+
 docker build -t sentence-embedding ..
 
 
