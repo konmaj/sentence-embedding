@@ -32,9 +32,9 @@ def embeddings(sents, unknown=UnknownVector(GLOVE_DIM)):
             for idx in where[word]:
                 result[idx] += vec
                 count[idx][0] += 1
-                
+
     read_file(GLOVE_FILE, process)
-    
+
     for word in where:
         if word not in words:
             for idx in where[word]:

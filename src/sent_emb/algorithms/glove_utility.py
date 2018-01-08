@@ -19,7 +19,7 @@ def read_file(file_path, f, should_count = False):
         if should_count:
             line_count += 1
             if line_count % (100 * 1000) == 0:
-                print('  line_count: ' + str(line_count))
+                print('  line_count: ', line_count)
 
 def create_glove_subset(word_set):
     file = open(GLOVE_FILE, 'w')
@@ -27,6 +27,6 @@ def create_glove_subset(word_set):
         if word in word_set:
             file.write(line)
     print('Cropping GloVe set...')
-    print('  Lines overall: ' + str(RAW_GLOVE_LINES))
+    print('  Lines overall: ', RAW_GLOVE_LINES)
     read_file(RAW_GLOVE_FILE, crop, should_count=True)
     file.close()
