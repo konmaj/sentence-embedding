@@ -22,7 +22,7 @@ DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
 LOG_PATH = Path('/', 'opt', 'resources', 'log')
 
 # Script from STS16 seems to be backward compatible with file formats from former years.
-GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS16', 'data', 'correlation-noconfidence.pl')
+GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
 def vector_len(vec):
@@ -55,7 +55,7 @@ def get_sts_input_path(year, test_name):
     sts_path = get_sts_path(year)
     input_name = 'STS.input.{}.txt'.format(test_name)
 
-    return sts_path.joinpath('data', input_name)
+    return sts_path.joinpath('test-data', input_name)
 
 
 def get_sts_gs_path(year, test_name):
@@ -64,7 +64,7 @@ def get_sts_gs_path(year, test_name):
     sts_path = get_sts_path(year)
     gs_name = 'STS.gs.{}.txt'.format(test_name)
 
-    return sts_path.joinpath('data', gs_name)
+    return sts_path.joinpath('test-data', gs_name)
 
 
 def get_sts_output_path(year, test_name):
