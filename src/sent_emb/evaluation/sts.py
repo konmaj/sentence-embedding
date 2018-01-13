@@ -10,6 +10,8 @@ from nltk.tokenize import word_tokenize
 from sent_emb.algorithms.glove_utility import create_glove_subset, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 
+STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
+
 TEST_NAMES = {
     12: ['MSRpar', 'MSRvid', 'SMTeuroparl', 'surprise.OnWN', 'surprise.SMTnews'],
     13: ['headlines', 'OnWN', 'FNWN'],
@@ -49,13 +51,15 @@ def get_sts_path(year):
     return DATASETS_PATH.joinpath('STS{}'.format(year))
 
 
-def get_sts_input_path(year, test_name):
+def get_sts_input_path(year, test_name, use_train_set=False):
     assert year in TEST_NAMES
+    assert not (use_train_set and year != 12)
 
     sts_path = get_sts_path(year)
+    dir_name = 'test-data' if not use_train_set else 'train-data'
     input_name = 'STS.input.{}.txt'.format(test_name)
 
-    return sts_path.joinpath('test-data', input_name)
+    return sts_path.joinpath(dir_name, input_name)
 
 
 def get_sts_gs_path(year, test_name):
@@ -81,6 +85,14 @@ def get_cur_time_str():
 
 
 def read_sts_input(file_path):
+    '''
+    Reads STS input file at given 'file_path'.
+
+    Returns: numpy array of sentences
+        Sentence: python list of words
+        Word: string
+        TODO: unify return type - only numpy or only python lists.
+    '''
     sents = []
     with open(file_path, 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -90,6 +102,34 @@ def read_sts_input(file_path):
             sents.extend(row[:2])
             
     return np.array([word_tokenize(s) for s in sents])
+
+
+def read_train_set(year):
+    '''
+    Reads training set available for STS in given 'year'.
+
+    For each year training set consists of:
+    1) STS12 train-data
+    2) Test data from STS from former years
+
+    Returns: sequence of sentences from all training sets available for STS in given 'year'
+        type: consistent with concatenation of results of function 'read_sts_input'
+    '''
+    # STS12 train-data...
+    train_inputs = []
+    for test_name in STS12_TRAIN_NAMES:
+        input_path = get_sts_input_path(12, test_name, use_train_set=True)
+        train_inputs.append(read_sts_input(input_path))
+
+    # test sets from STS before given 'year'
+    for test_year, test_names_year in sorted(TEST_NAMES.items()):
+        if test_year >= year:
+            break
+        for test_name in test_names_year:
+            input_path = get_sts_input_path(test_year, test_name, use_train_set=False)
+            train_inputs.append(read_sts_input(input_path))
+
+    return np.concatenate(tuple(train_inputs))
 
 
 def generate_similarity_file(emb_func, input_path, output_path):
@@ -123,9 +163,21 @@ def get_grad_script_res(output):
     return float(res.groups()[0]) # throws exception in case of wrong conversion
 
 
-def eval_sts_year(emb_func, year, year_file=False):
+def eval_sts_year(year, emb_func, train_func=None, year_file=False):
     '''
     Evaluates given embedding function on STS inputs from given year.
+
+    1) Trains given algorithm by applying 'train_func' to train dataset
+       (only if 'train_func' is not None).
+    2) Evaluates algorithm by applying 'emb_func' to various test datasets
+
+    Signatures:
+        emb_func(sents)
+            sents: sequence of sentences as in 'read_sts_input' function result
+            returns: numpy 2-D array of sentence embeddings
+        train_func(sents)
+            sents: sequence of sentences as in 'read_sts_input' function result
+            returns: None
 
     If year_file=True, generates file with results in the LOG_PATH directory.
 
@@ -133,8 +185,20 @@ def eval_sts_year(emb_func, year, year_file=False):
     (ordered as in TEST_NAMES[year]).
     '''
     assert year in TEST_NAMES
+    sts_name = 'STS{}'.format(year)
 
-    print('Evaluating on datasets from STS{}'.format(year))
+    print('Reading training set for', sts_name)
+    train_sents = None
+    if train_func is None:
+        print('... no function for training provided - training skipped.')
+    else:
+        train_sents = read_train_set(year)
+        print('numbers of sentences:', train_sents.shape[0])
+        print('Training started...')
+        train_func(train_sents)
+        print('... training completed.')
+
+    print('Evaluating on datasets from', sts_name)
     results = []
 
     mkdir_if_not_exist(LOG_PATH)
@@ -144,7 +208,7 @@ def eval_sts_year(emb_func, year, year_file=False):
 
     for test_name in TEST_NAMES[year]:
 
-        print('Evaluating on test {} from STS{}'.format(test_name, year))
+        print('Evaluating on test {} from {}'.format(test_name, sts_name))
 
         # generate out
         in_path = get_sts_input_path(year, test_name)
@@ -184,7 +248,7 @@ def create_glove_sts_subset():
         return
 
     sts_words = set()
-    for year, test_names in TEST_NAMES.items():
+    for year, test_names in sorted(TEST_NAMES.items()):
         for test_name in test_names:
             input_path = get_sts_input_path(year, test_name)
 
@@ -196,21 +260,23 @@ def create_glove_sts_subset():
     create_glove_subset(sts_words)
 
 
-def eval_sts_all(emb_func):
+def eval_sts_all(emb_func, train_func=None):
     '''
-    Evaluates given embedding function on all STS12-STS16 files.
+    Evaluates given embedding algorithm on all STS12-STS16 files.
 
     Writes results in a new CSV file in LOG_PATH directory.
+
+    emb_func, train_func - see docstring of 'eval_sts_year' function.
     '''
     create_glove_sts_subset()
 
     year_names = []
     test_names = []
     results = []
-    for year in TEST_NAMES:
+    for year in sorted(TEST_NAMES):
         # evaluate on STS sets from given year
         n_tests = len(TEST_NAMES[year])
-        year_res = eval_sts_year(emb_func, year)
+        year_res = eval_sts_year(year, emb_func, train_func)
         assert len(year_res) == n_tests
 
         # update lists with results
