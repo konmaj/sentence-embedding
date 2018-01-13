@@ -88,9 +88,9 @@ def read_sts_input(file_path):
     '''
     Reads STS input file at given 'file_path'.
 
-    Returns: numpy array of sentences
-        Sentence: python list of words
-        Word: string
+    returns: numpy array of sentences
+        sentence: python list of words
+        word: string
         TODO: unify return type - only numpy or only python lists.
     '''
     sents = []
@@ -112,7 +112,7 @@ def read_train_set(year):
     1) STS12 train-data
     2) Test data from STS from former years
 
-    Returns: sequence of sentences from all training sets available for STS in given 'year'
+    returns: sequence of sentences from all training sets available for STS in given 'year'
         type: consistent with concatenation of results of function 'read_sts_input'
     '''
     # STS12 train-data...
@@ -181,8 +181,8 @@ def eval_sts_year(year, emb_func, train_func=None, year_file=False):
 
     If year_file=True, generates file with results in the LOG_PATH directory.
 
-    Returns list of "Pearson's r * 100" of each input
-    (ordered as in TEST_NAMES[year]).
+    returns: list of "Pearson's r * 100" of each input
+             (ordered as in TEST_NAMES[year]).
     '''
     assert year in TEST_NAMES
     sts_name = 'STS{}'.format(year)
@@ -266,7 +266,7 @@ def eval_sts_all(emb_func, train_func=None):
 
     Writes results in a new CSV file in LOG_PATH directory.
 
-    emb_func, train_func - see docstring of 'eval_sts_year' function.
+    emb_func, train_func: see docstring of 'eval_sts_year' function.
     '''
     create_glove_sts_subset()
 
