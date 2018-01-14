@@ -278,18 +278,18 @@ def eval_sts_all(emb_func, train_func=None):
         n_tests = len(TEST_NAMES[year])
         year_res = eval_sts_year(year, emb_func, train_func)
         assert len(year_res) == n_tests
+        year_avg = sum(year_res) / n_tests
 
         # update lists with results
-        year_names.append('STS{}'.format(year))
-        year_names.extend(['' for _ in range(n_tests - 1)])
-        test_names.extend(TEST_NAMES[year])
-        results.extend(year_res)
+        year_names.extend(['STS{}'.format(year)] + ['' for _ in range(n_tests)])
+        test_names.extend(TEST_NAMES[year] + ['avg'])
+        results.extend(year_res + [year_avg])
 
     # write complete log file
     file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
     file_path = LOG_PATH.joinpath(file_name)
     with open(file_path, 'w+') as log_file:
-        writer = csv.writer(log_file, delimiter=',', quoting=csv.QUOTE_NONE)
+        writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         writer.writerow(year_names)
         writer.writerow(test_names)
         writer.writerow(['{:.3f}'.format(res) for res in results])
