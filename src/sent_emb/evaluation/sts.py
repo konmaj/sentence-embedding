@@ -158,7 +158,7 @@ def generate_similarity_file(emb_func, input_path, output_path):
 
 
 def get_grad_script_res(output):
-    res = re.search(r'^Pearson: (\d\.\d{5})$', output)
+    res = re.search(r'^Pearson: (-?\d\.\d{5})$', output)
     assert res is not None
     return float(res.groups()[0]) # throws exception in case of wrong conversion
 
