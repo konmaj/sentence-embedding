@@ -33,7 +33,7 @@ def zip_download_and_extract(url, dir_path):
     dir_pathname = str(dir_path.resolve())
     zip_path = dir_path.joinpath(Path(url).name)
     zip_pathname = str(zip_path.resolve())
-    
+
     print('Downloading from', url)
     urlretrieve(url, zip_pathname)
 
@@ -120,10 +120,24 @@ def get_sts_dataset(sts):
 
 def get_datasets():
     print('Checking for datasets:')
-    
+
     for sts in STS_TEST_URLS.keys():
         if mkdir_if_not_exist(STS_DIRS[sts]):
             print(sts, 'dataset not found')
             get_sts_dataset(sts)
         else:
             print('Found', sts, 'dataset')
+
+
+def get_word_frequency():
+    print('Checking for word frequency:')
+    URL = 'https://brkxta.ch.files.1drv.com/y4muXckFTakfqK-pwoJMOVCHLRip6Be-KBzebMgEWegV0log1W7H5EvX9leEqCKHBkpWeGIvEcoUO8nFO_GImZ_BecYUuK66hio-OVJn_FMhOPInhMkZOZoqRmeEJEeOW2UnXkT-W2M1oVpfTY81A8SXPaUZZKH2A8HMXZyJbL0OqlSTB6MKAKvdvF7_8sNgs74/en-2012.zip'
+
+    path = DOWNLOAD_DIR.joinpath('other')
+    mkdir_if_not_exist(path)
+    word_frequency_path = path.joinpath('word_frequency')
+    if mkdir_if_not_exist(word_frequency_path):
+        print('Word frequency not found')
+        zip_download_and_extract(URL, word_frequency_path)
+    else:
+        print('Found word frequency')

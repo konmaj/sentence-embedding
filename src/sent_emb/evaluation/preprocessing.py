@@ -8,13 +8,12 @@ class Preprocessing():
         pass
 
 
-class PreprocessingNltk():
-    @staticmethod
-    def tokenize(sent):
+class PreprocessingNltk(Preprocessing):
+    def tokenize(self, sent):
         return [ch.lower() for ch in nltk.tokenize.word_tokenize(sent)]
 
 
-class PreprocessingStanford():
+class PreprocessingStanford(Preprocessing):
     def __init__(self):
         self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
 
