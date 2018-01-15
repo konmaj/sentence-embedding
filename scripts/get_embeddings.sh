@@ -11,13 +11,13 @@ if [ -d $GLOVE_DIR ]; then
     echo "Found GloVe embeddings"
 else
     echo "GloVe embeddings not found"
-    
-    mkdir -p $GLOVE_DIR || exit $? 
+
+    mkdir -p $GLOVE_DIR || exit $?
     cd $GLOVE_DIR
-    
+
     echo "Downloading from $GLOVE_URL"
     curl -LO $GLOVE_URL
-    
+
     echo "Extracting into $GLOVE_DIR"
     unzip $GLOVE_ZIPFILE
     rm $GLOVE_ZIPFILE

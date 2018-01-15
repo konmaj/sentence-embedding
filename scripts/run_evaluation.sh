@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ./get_embeddings.sh || exit $?
+./get_stanfordNLP.sh || exit $?
 
 docker build -t sentence-embedding ..
 
