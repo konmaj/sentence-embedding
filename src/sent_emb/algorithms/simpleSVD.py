@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 from abc import abstractmethod
+import gzip
 
 from sklearn.utils.extmath import randomized_svd
 
@@ -8,7 +9,7 @@ from sent_emb.algorithms.unkown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
 from sent_emb.downloader.downloader import get_word_frequency
 
-WORD_FREQUENCY_FILE = Path('/', 'opt', 'resources', 'other', 'word_frequency', 'en.txt')
+WORD_FREQUENCY_FILE = Path('/', 'opt', 'resources', 'other', 'word_frequency', 'all.num.gz')
 
 
 def embeddings_param(sents, unknown, param_a, prob, unknown_prob_mult):
@@ -90,9 +91,10 @@ class ExternalProb(Prob):
         self.all = 0
         self.count = {}
         self.simple = SimpleProb(sents)
-        for lines in open(WORD_FREQUENCY_FILE):
-            word = lines.split(' ')[0]
-            c = int(lines.split(' ')[1])
+        for lines in gzip.open(WORD_FREQUENCY_FILE):
+            sep = lines.split()
+            word = sep[1]
+            c = int(sep[0])
             self.all += c
             self.count[word] = c
 

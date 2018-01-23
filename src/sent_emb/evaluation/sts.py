@@ -3,10 +3,12 @@ import datetime
 import subprocess
 import re
 
+from shutil import copyfile
+
 import numpy as np
 from pathlib import Path
 
-from sent_emb.algorithms.glove_utility import create_glove_subset, GLOVE_FILE
+from sent_emb.algorithms.glove_utility import create_glove_subset, glove_file, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
@@ -83,6 +85,20 @@ def get_cur_time_str():
     return datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 
 
+def tokens(tokenizer, sents):
+    guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
+    con = ''
+    for sent in sents:
+        con = con + sent + '\n' + guard + '\n'
+    tokenized = tokenizer.tokenize(con)
+    res = [[]]
+    for word in tokenized:
+        if word == guard:
+            res.append([])
+        else:
+            res[-1].append(word)
+    return res[:-1]
+
 def read_sts_input(file_path, tokenizer):
     '''
     Reads STS input file at given 'file_path'.
@@ -99,7 +115,7 @@ def read_sts_input(file_path, tokenizer):
             assert len(row) == 2 \
                 or len(row) == 4 # STS16 contains also source of each sentence
             sents.extend(row[:2])
-    return np.array([tokenizer.tokenize(sent) for sent in sents])
+    return np.array(tokens(tokenizer, sents))
 
 
 def read_train_set(year, tokenizer):
@@ -241,21 +257,22 @@ def create_glove_sts_subset(tokenizer):
     2) Creates reduced GloVe file, which contains only words that appeared
        in STS.
     '''
-    if GLOVE_FILE.exists():
+    if glove_file(tokenizer.name()).exists():
         print('Cropped GloVe file already exists')
-        return
+    else:
+        sts_words = set()
+        for year, test_names in sorted(TEST_NAMES.items()):
+            for test_name in test_names:
+                input_path = get_sts_input_path(year, test_name)
 
-    sts_words = set()
-    for year, test_names in sorted(TEST_NAMES.items()):
-        for test_name in test_names:
-            input_path = get_sts_input_path(year, test_name)
+                sents = read_sts_input(input_path, tokenizer)
+                for sent in sents:
+                    for word in sent:
+                        sts_words.add(word)
 
-            sents = read_sts_input(input_path, tokenizer)
-            for sent in sents:
-                for word in sent:
-                    sts_words.add(word)
+        create_glove_subset(sts_words, tokenizer.name())
 
-    create_glove_subset(sts_words)
+    copyfile(glove_file(tokenizer.name()), GLOVE_FILE)
 
 
 def eval_sts_all(emb_func, tokenizer, train_func=None):

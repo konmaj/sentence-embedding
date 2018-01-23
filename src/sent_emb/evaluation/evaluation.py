@@ -7,4 +7,4 @@ from preprocessing import PreprocessingNltk, PreprocessingStanford
 
 downloader.get_datasets()
 
-sts.eval_sts_all(simpleSVD.embeddings, PreprocessingNltk())
+sts.eval_sts_all(simpleSVD.embeddings, PreprocessingStanford())

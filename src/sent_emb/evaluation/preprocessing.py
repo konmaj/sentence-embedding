@@ -7,10 +7,16 @@ class Preprocessing():
     def tokenize(self, sent):
         pass
 
+    def name(self):
+        pass
+
 
 class PreprocessingNltk(Preprocessing):
     def tokenize(self, sent):
         return [ch.lower() for ch in nltk.tokenize.word_tokenize(sent)]
+
+    def name(self):
+        return 'simpleNLTK'
 
 
 class PreprocessingStanford(Preprocessing):
@@ -19,3 +25,6 @@ class PreprocessingStanford(Preprocessing):
 
     def tokenize(self, sent):
         return [ch.lower() for ch in self.tokenizer.tokenize(sent)]
+
+    def name(self):
+        return 'StanfordCoreNLPTokenizer'
