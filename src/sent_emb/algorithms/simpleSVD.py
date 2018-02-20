@@ -58,8 +58,8 @@ def embeddings_param(sents, unknown, param_a, prob, unknown_prob_mult):
     # Subtract first singular vector
     _, _, u = randomized_svd(result, n_components=1)
     for i in range(result.shape[0]):
-        U = u * np.transpose(u)
-        result[i] -= U.dot(result[i])
+        u2 = u * np.transpose(u)
+        result[i] -= u2.dot(result[i])
 
     return result
 

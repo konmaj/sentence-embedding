@@ -9,11 +9,11 @@ GLOVE_FILE = GLOVE_DIR.joinpath('glove_cropped.txt')
 GLOVE_DIM = 300
 
 
-def glove_file(name):
+def get_glove_file(name):
     return GLOVE_DIR.joinpath('glove_cropped_' + name + '.txt')
 
 
-def read_file(file_path, f, should_count = False):
+def read_file(file_path, f, should_count=False):
     line_count = 0
     glove_file = open(file_path)
     for raw_line in glove_file:
@@ -28,10 +28,12 @@ def read_file(file_path, f, should_count = False):
 
 
 def create_glove_subset(word_set, name):
-    file = open(glove_file(name), 'w')
+    file = open(get_glove_file(name), 'w')
+
     def crop(word, _, line):
         if word in word_set:
             file.write(line)
+
     print('Cropping GloVe set...')
     print('  Lines overall: ', RAW_GLOVE_LINES)
     read_file(RAW_GLOVE_FILE, crop, should_count=True)
