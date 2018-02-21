@@ -2,8 +2,14 @@ from abc import abstractmethod
 
 import numpy as np
 
+from sent_emb.algorithms.glove_utility import GLOVE_FILE, read_file
+
 
 class TestDataStatistic:
+    def __init__(self, agg_func):
+        self.results = []
+        self.agg_func = agg_func
+
     def add_sents(self, sents):
         assert len(sents) == 2
         self.add_sents_pair(sents)
@@ -16,11 +22,11 @@ class TestDataStatistic:
         for sents in sents_list:
             self.add_sents(sents)
 
-    @abstractmethod
     def get_statistic(self):
-        pass
+        return self.agg_func(np.array(self.results))
 
     def evaluate(self, sents_list):
+        self.results = []
         self.add_all_sents(sents_list)
         return self.get_statistic()
 
@@ -32,32 +38,60 @@ class TestDataStatistic:
 
 class LengthStatistic(TestDataStatistic):
     def __init__(self, agg_func):
-        self.result = []
-        self.agg_func = agg_func
+        super().__init__(agg_func)
 
     def add_sents_pair(self, sents):
-        self.result.extend([len(sents[0]), len(sents[1])])
-
-    def get_statistic(self):
-        return self.agg_func(np.array(self.result))
+        self.results.extend([len(sents[0]), len(sents[1])])
 
     @staticmethod
     def name():
         return "Sentence length"
 
 
+class LengthDifferenceStatistic(TestDataStatistic):
+    def __init__(self, agg_func):
+        super().__init__(agg_func)
+
+    def add_sents_pair(self, sents):
+        self.results.append(abs(len(sents[0]) - len(sents[1])))
+
+    @staticmethod
+    def name():
+        return "Sentences length difference"
+
+
 class IntersectionStatistic(TestDataStatistic):
     def __init__(self, agg_func):
-        self.result = []
-        self.agg_func = agg_func
+        super().__init__(agg_func)
 
     def add_sents_pair(self, sents):
         sets = [set(s) for s in sents]
-        self.result.append(len(sets[0] & sets[1]) / len(sets[0] | sets[1]))
-
-    def get_statistic(self):
-        return self.agg_func(np.array(self.result))
+        self.results.append(len(sets[0] & sets[1]) / len(sets[0] | sets[1]))
 
     @staticmethod
     def name():
         return "Sentences intersection"
+
+
+class GloveCoverStatistic(TestDataStatistic):
+    def __init__(self, agg_func):
+        super().__init__(agg_func)
+        self.glove_words = set()
+
+        def process(word, vec = None, raw_sent = None):
+            self.glove_words.add(word)
+
+        read_file(GLOVE_FILE, process)
+
+    def add_sents_pair(self, sents):
+        for sent in sents:
+            cover_count = 0
+            for word in sent:
+                if word in self.glove_words:
+                    cover_count += 1
+
+            self.results.append(cover_count / len(sent))
+
+    @staticmethod
+    def name():
+        return "GloVe coverage"

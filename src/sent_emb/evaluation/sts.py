@@ -8,7 +8,7 @@ from shutil import copyfile
 import numpy as np
 from pathlib import Path
 
-from sent_emb.algorithms.glove_utility import create_glove_subset, glove_file, GLOVE_FILE
+from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']

@@ -1,11 +1,11 @@
-from sent_emb.statistics.test_data import LengthStatistic, IntersectionStatistic
+from sent_emb.statistics.test_data import LengthStatistic, IntersectionStatistic, LengthDifferenceStatistic, GloveCoverStatistic
 from sent_emb.evaluation.sts import get_sts_input_path, read_sts_input, TEST_NAMES
 
 import numpy as np
 
 
 AGG_FUNCS = [[np.min, 'min'], [np.max, 'max'], [np.mean, 'mean'], [np.std, 'std']]
-STATISTICS = [LengthStatistic, IntersectionStatistic]
+STATISTICS = [LengthStatistic, LengthDifferenceStatistic, IntersectionStatistic, GloveCoverStatistic]
 
 
 def test_data_statistics(sents_pairs, data_name):
