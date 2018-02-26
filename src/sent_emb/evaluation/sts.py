@@ -257,7 +257,7 @@ def create_glove_sts_subset(tokenizer):
     2) Creates reduced GloVe file, which contains only words that appeared
        in STS.
     '''
-    if glove_file(tokenizer.name()).exists():
+    if get_glove_file(tokenizer.name()).exists():
         print('Cropped GloVe file already exists')
     else:
         sts_words = set()
@@ -272,7 +272,7 @@ def create_glove_sts_subset(tokenizer):
 
         create_glove_subset(sts_words, tokenizer.name())
 
-    copyfile(glove_file(tokenizer.name()), GLOVE_FILE)
+    copyfile(get_glove_file(tokenizer.name()), GLOVE_FILE)
 
 
 def eval_sts_all(emb_func, tokenizer, train_func=None):

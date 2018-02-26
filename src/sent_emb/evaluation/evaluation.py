@@ -8,4 +8,5 @@ from preprocessing import PreprocessingNltk, PreprocessingStanford
 
 downloader.get_datasets()
 
-all_statistics(PreprocessingNltk())
+#all_statistics(PreprocessingNltk())
+sts.eval_sts_all(simple_autoencoder.embeddings, PreprocessingStanford(), simple_autoencoder.train_model)

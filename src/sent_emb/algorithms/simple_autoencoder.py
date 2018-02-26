@@ -1,7 +1,7 @@
 import numpy as np
 from keras.layers import Dense, BatchNormalization
 from keras.models import Sequential
-from keras import backend as K
+from keras import backend as K, Input, Model
 
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -12,6 +12,7 @@ model = None
 encoder = None
 default_maxlen = 80
 default_target_dim = 300
+
 
 def parse_sents(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen):
     where = {}
@@ -49,30 +50,30 @@ def train_model(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen, 
     vectorizer = CountVectorizer(preprocessor=(lambda line: ' '.join(line).lower()))
     y_train = vectorizer.fit_transform(sents).toarray()
 
-    model = Sequential()
+    K.set_learning_phase(1)
 
-    model.add(Dense(500, input_dim=input_dim, activation='relu'))
-    model.add(BatchNormalization())
-    encoder = Dense(target_dim, activation='relu')
-    model.add(encoder)
-    model.add(BatchNormalization())
-    model.add(Dense(500, activation='relu'))
-    model.add(BatchNormalization())
-    model.add(Dense(y_train.shape[1], activation='linear'))
+    inputs = Input(shape=(input_dim,))
+    x = Dense(500, activation='relu')(inputs)
+    x = BatchNormalization()(x)
+    x = Dense(target_dim, activation='relu')(x)
+    # x = BatchNormalization()(x)
+    encoder = Model(inputs=inputs, outputs=x)
 
+    inputs = Input(shape=(input_dim,))
+    # x = BatchNormalization()(encoder)
+    x = Dense(500, activation='relu')(encoder(inputs))
+    outputs = Dense(y_train.shape[1], activation='linear')(x)
+
+    model = Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-
-    model.fit(x_train, y_train, epochs=20, batch_size=64, shuffle=True)
+    model.fit(x_train, y_train, epochs=1, batch_size=64, shuffle=True)
 
 
 def get_single_embedding(sentences):
     global model
     global encoder
 
-    get_encoding = K.function([model.layers[0].input, encoder.input, K.learning_phase()],
-                                      [encoder.output])
-
-    return get_encoding([sentences])[0]
+    return encoder.predict([sentences])
 
 
 def embeddings(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen, target_dim=default_target_dim):
