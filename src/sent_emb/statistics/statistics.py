@@ -5,7 +5,8 @@ import numpy as np
 
 
 AGG_FUNCS = [[np.min, 'min'], [np.max, 'max'], [np.mean, 'mean'], [np.std, 'std']]
-STATISTICS = [LengthStatistic, LengthDifferenceStatistic, IntersectionStatistic, GloveCoverStatistic]
+STATISTICS = [LengthStatistic, LengthDifferenceStatistic, IntersectionStatistic]
+SINGLE_STATISTICS = [GloveCoverStatistic]
 
 
 def test_data_statistics(sents_pairs, data_name):
@@ -16,7 +17,12 @@ def test_data_statistics(sents_pairs, data_name):
         for func, func_name in AGG_FUNCS:
             stat = stat_class(func)
             print('    {}: {}'.format(func_name, stat.evaluate(sents_pairs)))
-        print()
+
+    for stat_class in SINGLE_STATISTICS:
+        print('  {}:'.format(stat_class.name()))
+
+        stat = stat_class(np.mean)
+        print('    {}: {}'.format('mean', stat.evaluate(sents_pairs)))
     print()
 
 
