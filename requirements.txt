@@ -7,3 +7,4 @@ tflearn==0.3.2
 keras==2.1.2
 nlpkit==0.35
 nltk==3.2.4
+gensim==3.3.0
