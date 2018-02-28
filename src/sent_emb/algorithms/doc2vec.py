@@ -1,9 +1,11 @@
 import numpy as np
 import gensim
+import multiprocessing
 
-VECTOR_DIM = 50
+VECTOR_DIM = 300
 MIN_COUNT = 1
-EPOCHS = 5
+EPOCHS = 10
+N_THREADS = multiprocessing.cpu_count()
 
 model = None
 
@@ -12,7 +14,8 @@ def train(sents):
     global model
     model = gensim.models.doc2vec.Doc2Vec(vector_size=VECTOR_DIM,
                                           min_count=MIN_COUNT,
-                                          epochs=EPOCHS)
+                                          epochs=EPOCHS,
+                                          workers=N_THREADS)
 
     train_corpus = [gensim.models.doc2vec.TaggedDocument(sent, [idx])
                     for idx, sent in enumerate(sents)]
