@@ -9,4 +9,4 @@ from preprocessing import PreprocessingNltk, PreprocessingStanford
 downloader.get_datasets()
 
 #all_statistics(PreprocessingNltk())
-sts.eval_sts_all(doc2vec.embeddings, PreprocessingNltk(), doc2vec.train)
+sts.eval_sts_all(doc2vec.Doc2Vec(), PreprocessingNltk())
