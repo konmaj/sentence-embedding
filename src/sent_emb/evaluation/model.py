@@ -4,6 +4,11 @@ from abc import ABC, abstractmethod
 class BaseAlgorithm(ABC):
     '''
     Base abstract class, which represents algorithms, which compute sentence embeddings.
+
+    Note - following call:
+        SubclassName()
+    should yield valid (but maybe not optimally tuned) object of SubclassName
+    (for the purpose of smoketest).
     '''
 
     @abstractmethod

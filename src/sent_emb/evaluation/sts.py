@@ -179,7 +179,7 @@ def get_grad_script_res(output):
     return float(res.groups()[0]) # throws exception in case of wrong conversion
 
 
-def eval_sts_year(year, algorithm, tokenizer, year_file=False):
+def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False):
     '''
     Evaluates given embedding algorithm on STS inputs from given year.
 
@@ -187,6 +187,8 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False):
     2) Evaluates algorithm by calling algorithm.transform() on various test datasets
 
     If year_file=True, generates file with results in the LOG_PATH directory.
+
+    If smoke_test=True, shrinks training set to the first 10 sentences.
 
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
@@ -201,6 +203,8 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False):
 
     print('Reading training set for', sts_name)
     train_sents = read_train_set(year, tokenizer)
+    if smoke_test:
+        train_sents = train_sents[:10]
     print('numbers of sentences:', train_sents.shape[0])
     print('Training started...')
     algorithm.fit(train_sents)
