@@ -14,4 +14,4 @@ docker run \
    -w /opt/sent_emb/evaluation \
    -e PYTHONPATH=/opt/ \
    sentence-embedding\
-      evaluation.py
+      evaluation.py "$@"
