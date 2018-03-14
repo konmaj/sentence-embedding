@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from pathlib import Path
 import sys
 from keras.models import Model, load_model
@@ -10,8 +11,8 @@ from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.evaluation import sts
 
 BATCH_SIZE = 64  # Batch size for training.
+EPOCHS = 10
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
-MAX_ENCODER_WORDS = 100
 
 GLOVE_DIM = 50
 GLOVE_50D_FILE = Path('/', 'opt', 'resources', 'embeddings', 'glove', 'glove.6B.50d.txt')
@@ -52,6 +53,7 @@ def replace_with_embs(sents, unknown_vec):
             unknown_vec.see(word, vec)
     print('Reading file:', str(GLOVE_50D_FILE))
     read_file(str(GLOVE_50D_FILE), capture_word_embs, should_count=True)
+    print('...done.')
 
     sents_vec = []
     for sent in sents:
@@ -63,24 +65,48 @@ def replace_with_embs(sents, unknown_vec):
     return sents_vec, unknown_vec
 
 
-def align_sents(sents_vec, unknown_vec):
+def get_random_subsequence(sequence, result_size):
     '''
-    Fits each sentence to has number of words == MAX_ENCODER_WORDS
+    Computes random subsequence of size 'result_size' of python list 'sequence'.
+    '''
+    seq_len = len(sequence)
+    assert result_size <= seq_len
+
+    selected_indices = np.sort(np.random.permutation(seq_len)[: result_size])
+
+    return [sequence[ind] for ind in selected_indices]
+
+
+def align_sents(sents_vec, padding_vec, cut_rate=0.8):
+    '''
+    Fits each sentence to has equal number of words (dependent on 'cut_rate').
 
     sents_vec: list of sentences of vectorized words
                (see return type of replace_with_embs() function)
 
-    unknown_vec: object of sent_emb.algorithms.unknown.Unknown abstract class
+    padding_vec: np.array of type np.float and length GLOVE_DIM
+                 is used when there is not enough words in the sentence.
+
+    cut_rate: coefficient of [0; 1] interval
+              Target number of words per sentence (num_encoder_words) is set to be the minimal
+              integer such that at least 'cut_rate' fraction of original sentences are of length
+              less or equal 'num_encoder_words'.
 
     returns: list of sentences (in format as 'sents_vec')
              each sentence consists of MAX_ENCODER_WORDS words.
     '''
-    for sent in sents_vec:
-        assert len(sent) <= MAX_ENCODER_WORDS
+    assert 0 <= cut_rate and cut_rate <= 1
 
-        sent.extend([unknown_vec.get(None) for _ in range(MAX_ENCODER_WORDS - len(sent))])
+    sent_lengths = sorted([len(sent) for sent in sents_vec])
+    num_encoder_words = sent_lengths[int(math.ceil(cut_rate * len(sent_lengths)))]
 
-        assert len(sent) == MAX_ENCODER_WORDS
+    for i in range(len(sents_vec)):
+        if len(sents_vec[i]) <= num_encoder_words:
+            sents_vec[i].extend([padding_vec for _ in range(num_encoder_words - len(sents_vec[i]))])
+        else:
+            sents_vec[i] = get_random_subsequence(sents_vec[i], num_encoder_words)
+        assert len(sents_vec[i]) == num_encoder_words
+
     return sents_vec
 
 
@@ -95,9 +121,10 @@ def preprocess_sents(sents):
 
     sents_vec, unknown_vec = replace_with_embs(sents, UnknownVector(GLOVE_DIM))
 
-    aligned_sents = align_sents(sents_vec, unknown_vec)
+    padding_vec = np.zeros(GLOVE_DIM, dtype=np.float)
+    aligned_sents = align_sents(sents_vec, padding_vec)
 
-    return np.array(aligned_sents)
+    return np.array(aligned_sents, dtype=np.float)
 
 
 class Seq2Seq(BaseAlgorithm):
@@ -166,7 +193,7 @@ class Seq2Seq(BaseAlgorithm):
         '''
         pass
 
-    def improve_weights(self, sents, epochs=1):
+    def improve_weights(self, sents, epochs=EPOCHS):
         '''
         Real training of the model.
 
@@ -174,6 +201,7 @@ class Seq2Seq(BaseAlgorithm):
                (shaped as in sent_emb.evaluation.sts.read_sts_input())
         '''
         sents_vec = preprocess_sents(sents)
+        print("Shape of sentences after preprocessing:", sents_vec.shape)
 
         encoder_input_data = sents_vec
 
@@ -193,7 +221,8 @@ class Seq2Seq(BaseAlgorithm):
 
     def transform(self, sents):
         sents_vec = preprocess_sents(sents)
-        assert sents_vec.shape == (sents.shape[0], MAX_ENCODER_WORDS, GLOVE_DIM)
+        print("Shape of sentences after preprocessing:", sents_vec.shape)
+        assert sents_vec.shape[0] == sents.shape[0] and sents_vec.shape[2] == GLOVE_DIM
 
         embs = self.encoderModel.predict(sents_vec)
 
