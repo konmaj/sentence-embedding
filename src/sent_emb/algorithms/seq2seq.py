@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 import sys
 from keras.models import Model, load_model
-from keras.layers import Input, LSTM, Dense
+from keras.layers import Input, LSTM, Dense, GRU
 
 from sent_emb.algorithms.glove_utility import read_file
 from sent_emb.algorithms.unkown import UnknownVector
@@ -128,7 +128,7 @@ def preprocess_sents(sents):
 
 
 class Seq2Seq(BaseAlgorithm):
-    def __init__(self, name='s2s_lstm_sts1215_g50', force_load=True):
+    def __init__(self, name='s2s_gru_sts1215_g50', force_load=True):
         '''
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -145,11 +145,11 @@ class Seq2Seq(BaseAlgorithm):
 
         # Define an input sequence and process it.
         encoder_inputs = Input(shape=(None, GLOVE_DIM))
-        encoder = LSTM(LATENT_DIM, return_state=True)
-        encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+        encoder = GRU(LATENT_DIM, return_state=True)
+        encoder_outputs, state_h = encoder(encoder_inputs)
 
         # We discard `encoder_outputs` and only keep the states.
-        encoder_states = [state_h, state_c]
+        encoder_states = [state_h]
         self.encoderModel = Model(encoder_inputs, encoder_states)
 
         # Set up the decoder, using `encoder_states` as initial state.
@@ -157,9 +157,9 @@ class Seq2Seq(BaseAlgorithm):
         # We set up our decoder to return full output sequences,
         # and to return internal states as well. We don't use the
         # return states in the training model, but we will use them in inference.
-        decoder_lstm = LSTM(LATENT_DIM, return_sequences=True, return_state=True)
-        decoder_outputs, _, _ = decoder_lstm(decoder_inputs,
-                                             initial_state=encoder_states)
+        decoder_gru = GRU(LATENT_DIM, return_sequences=True, return_state=True)
+        decoder_outputs, _ = decoder_gru(decoder_inputs,
+                                         initial_state=encoder_states)
         decoder_dense = Dense(GLOVE_DIM, activation='linear')
         decoder_outputs = decoder_dense(decoder_outputs)
 
@@ -226,9 +226,9 @@ class Seq2Seq(BaseAlgorithm):
 
         embs = self.encoderModel.predict(sents_vec)
 
-        assert len(embs) == 2
+        assert embs.shape == (sents_vec.shape[0], LATENT_DIM)
 
-        return np.concatenate(embs, axis=1)
+        return embs
 
 
 def improve_model(algorithm, tokenizer):
