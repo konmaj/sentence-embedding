@@ -15,7 +15,9 @@ RUN_MODES = ['STS', 'stats', 'test']
 
 # All available algorithms with their constructors.
 ALGORITHMS = {
-    'Doc2Vec': doc2vec.Doc2Vec
+    'Doc2Vec': doc2vec.Doc2Vec,
+    'GloveMean': glove_embeddings_mean.GloveMean,
+    'SVD': simpleSVD.SimpleSVD
 }
 
 # All available tokenizers with their constructors.
