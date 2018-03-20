@@ -141,3 +141,17 @@ def get_word_frequency():
         urlretrieve(URL, word_frequency_path.joinpath(Path(URL).name))
     else:
         print('Found word frequency')
+
+
+def get_fasttext():
+    print('Checking for fastText')
+    URL = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki-news-300d-1M-subword.vec.zip'
+
+    path_emb = DOWNLOAD_DIR.joinpath('embeddings')
+    mkdir_if_not_exist(path_emb)
+    path = path_emb.joinpath('fasttext')
+    if mkdir_if_not_exist(path):
+        print('FastText not found')
+        zip_download_and_extract(URL, path)
+    else:
+        print('Found fastText')
