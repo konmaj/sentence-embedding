@@ -6,7 +6,7 @@ from keras import backend as K, Input, Model
 from sklearn.feature_extraction.text import CountVectorizer
 
 from sent_emb.evaluation.model import BaseAlgorithm
-from sent_emb.algorithms.unkown import UnknownVector
+from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
 
 

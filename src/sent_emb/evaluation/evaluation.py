@@ -3,7 +3,7 @@ import argparse
 import json
 import sys
 
-from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec
+from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec, fasttext_mean
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts

@@ -1,9 +1,9 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 
-class Unknown:
+class Unknown(ABC):
     def __init__(self):
         pass
 
