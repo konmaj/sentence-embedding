@@ -10,6 +10,7 @@ from pathlib import Path
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
+from sent_emb.evaluation.model import BaseAlgorithm
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
 
@@ -99,6 +100,7 @@ def tokens(tokenizer, sents):
             res[-1].append(word)
     return res[:-1]
 
+
 def read_sts_input(file_path, tokenizer):
     '''
     Reads STS input file at given 'file_path'.
@@ -146,9 +148,9 @@ def read_train_set(year, tokenizer):
     return np.concatenate(tuple(train_inputs))
 
 
-def generate_similarity_file(emb_func, input_path, output_path, tokenizer):
+def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     '''
-    Runs given embedding function ('emb_func') on a single STS task (without
+    Runs given embedding algorithm.transform() method on a single STS task (without
     computing score).
 
     Writes output in format described in section Output Files of file
@@ -158,7 +160,7 @@ def generate_similarity_file(emb_func, input_path, output_path, tokenizer):
     sents = read_sts_input(input_path, tokenizer)
 
     # compute embeddings
-    embs = emb_func(sents)
+    embs = algorithm.transform(sents)
     assert len(embs) == len(sents)
 
     # generate similarities between pairs of sentences
@@ -177,23 +179,19 @@ def get_grad_script_res(output):
     return float(res.groups()[0]) # throws exception in case of wrong conversion
 
 
-def eval_sts_year(year, emb_func, tokenizer, train_func=None, year_file=False):
+def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False):
     '''
-    Evaluates given embedding function on STS inputs from given year.
+    Evaluates given embedding algorithm on STS inputs from given year.
 
-    1) Trains given algorithm by applying 'train_func' to train dataset
-       (only if 'train_func' is not None).
-    2) Evaluates algorithm by applying 'emb_func' to various test datasets
-
-    Signatures:
-        emb_func(sents)
-            sents: sequence of sentences as in 'read_sts_input' function result
-            returns: numpy 2-D array of sentence embeddings
-        train_func(sents)
-            sents: sequence of sentences as in 'read_sts_input' function result
-            returns: None
+    1) Trains given algorithm by calling algorithm.fit() method on train dataset
+    2) Evaluates algorithm by calling algorithm.transform() on various test datasets
 
     If year_file=True, generates file with results in the LOG_PATH directory.
+
+    If smoke_test=True, shrinks training set to the first 10 sentences.
+
+    algorithm: instance of BaseAlgorithm class
+               (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
 
     returns: list of "Pearson's r * 100" of each input
              (ordered as in TEST_NAMES[year]).
@@ -201,16 +199,16 @@ def eval_sts_year(year, emb_func, tokenizer, train_func=None, year_file=False):
     assert year in TEST_NAMES
     sts_name = 'STS{}'.format(year)
 
+    assert isinstance(algorithm, BaseAlgorithm)
+
     print('Reading training set for', sts_name)
-    train_sents = None
-    if train_func is None:
-        print('... no function for training provided - training skipped.')
-    else:
-        train_sents = read_train_set(year, tokenizer)
-        print('numbers of sentences:', train_sents.shape[0])
-        print('Training started...')
-        train_func(train_sents)
-        print('... training completed.')
+    train_sents = read_train_set(year, tokenizer)
+    if smoke_test:
+        train_sents = train_sents[:10]
+    print('numbers of sentences:', train_sents.shape[0])
+    print('Training started...')
+    algorithm.fit(train_sents)
+    print('... training completed.')
 
     print('Evaluating on datasets from', sts_name)
     results = []
@@ -229,7 +227,7 @@ def eval_sts_year(year, emb_func, tokenizer, train_func=None, year_file=False):
         out_path = get_sts_output_path(year, test_name)
         gs_path = get_sts_gs_path(year, test_name)
 
-        generate_similarity_file(emb_func, in_path, out_path, tokenizer)
+        generate_similarity_file(algorithm, in_path, out_path, tokenizer)
 
         # compare out with gold standard
         script = GRADING_SCRIPT_PATH
@@ -275,13 +273,14 @@ def create_glove_sts_subset(tokenizer):
     copyfile(get_glove_file(tokenizer.name()), GLOVE_FILE)
 
 
-def eval_sts_all(emb_func, tokenizer, train_func=None):
+def eval_sts_all(algorithm, tokenizer):
     '''
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
     Writes results in a new CSV file in LOG_PATH directory.
 
-    emb_func, train_func: see docstring of 'eval_sts_year' function.
+    algorithm: instance of BaseAlgorithm class
+               (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
     '''
     create_glove_sts_subset(tokenizer)
 
@@ -291,7 +290,7 @@ def eval_sts_all(emb_func, tokenizer, train_func=None):
     for year in sorted(TEST_NAMES):
         # evaluate on STS sets from given year
         n_tests = len(TEST_NAMES[year])
-        year_res = eval_sts_year(year, emb_func, tokenizer, train_func)
+        year_res = eval_sts_year(year, algorithm, tokenizer)
         assert len(year_res) == n_tests
         year_avg = sum(year_res) / n_tests
 

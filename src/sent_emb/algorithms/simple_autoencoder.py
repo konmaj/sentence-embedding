@@ -5,16 +5,12 @@ from keras import backend as K, Input, Model
 
 from sklearn.feature_extraction.text import CountVectorizer
 
+from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
 
-model = None
-encoder = None
-default_maxlen = 80
-default_target_dim = 300
 
-
-def parse_sents(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen):
+def parse_sents(sents, unknown, maxlen):
     where = {}
     words = set()
 
@@ -38,57 +34,50 @@ def parse_sents(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen):
 
     result = result.reshape((result.shape[0], result.shape[1]*result.shape[2]))
 
-    return result, result.shape[1]
+    return result
 
 
-def train_model(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen, target_dim=default_target_dim):
-    global model
-    global encoder
-
-    x_train, input_dim = parse_sents(sents, unknown, maxlen)
-
-    vectorizer = CountVectorizer(preprocessor=(lambda line: ' '.join(line).lower()))
-    y_train = vectorizer.fit_transform(sents).toarray()
-
-    K.set_learning_phase(1)
-
+def buildModel(target_dim, input_dim, output_dim):
     inputs = Input(shape=(input_dim,))
     x = Dense(500, activation='relu')(inputs)
     x = BatchNormalization()(x)
-    x = Dense(target_dim, activation='relu')(x)
-    # x = BatchNormalization()(x)
-    encoder = Model(inputs=inputs, outputs=x)
+    outputs = Dense(target_dim, activation='relu')(x)
+    encoder = Model(inputs=inputs, outputs=outputs)
 
     inputs = Input(shape=(input_dim,))
-    # x = BatchNormalization()(encoder)
     x = Dense(500, activation='relu')(encoder(inputs))
-    outputs = Dense(y_train.shape[1], activation='linear')(x)
+    outputs = Dense(output_dim, activation='relu')(x)
 
     model = Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=1, batch_size=64, shuffle=True)
+
+    return encoder, model
 
 
-def get_single_embedding(sentences):
-    global model
-    global encoder
+class SimpleAutoencoder(BaseAlgorithm):
+    def __init__(self, unknown=UnknownVector(GLOVE_DIM), maxlen=100, target_dim=300):
+        '''
+            unknown: handler of words not appearing in GloVe
+            maxlen: maximal sentence length
+            target_dim: dimension of encoding space
+        '''
+        self.encoder = None
+        self.model = None
+        self.unknown = unknown
+        self.maxlen = maxlen
+        self.target_dim = target_dim
 
-    return encoder.predict([sentences])
+    def fit(self, sents):
+        x_train = parse_sents(sents, self.unknown, self.maxlen)
 
+        vectorizer = CountVectorizer(preprocessor=(lambda line: ' '.join(line).lower()), binary=True)
+        y_train = vectorizer.fit_transform(sents).toarray()
 
-def embeddings(sents, unknown=UnknownVector(GLOVE_DIM), maxlen=default_maxlen, target_dim=default_target_dim):
-    '''
-        sents: numpy array of sentences to compute embeddings
-        unknown: handler of words not appearing in GloVe
-        maxlen: maximal sentence length
-        target_dim: the embedding dimension
+        self.encoder, self.model = buildModel(self.target_dim, self.maxlen * GLOVE_DIM, y_train.shape[1])
 
-        returns: numpy 2-D array of embeddings;
-        length of single embedding is equal to target_dim
-    '''
+        self.model.fit(x_train, y_train, epochs=1, batch_size=64, shuffle=True)
 
-    x_test, dim = parse_sents(sents, unknown, maxlen)
+    def transform(self, sents):
+        x_test = parse_sents(sents, self.unknown, self.maxlen)
 
-    result = get_single_embedding(x_test)
-
-    return result
+        return self.encoder.predict(x_test)
