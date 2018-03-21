@@ -3,7 +3,7 @@ import argparse
 import json
 import sys
 
-from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec, fasttext_mean
+from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec, fasttext_mean, seq2seq
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts
@@ -11,14 +11,15 @@ from preprocessing import PreprocessingNltk, PreprocessingStanford
 
 
 # All available evaluation methods.
-RUN_MODES = ['STS', 'stats', 'test']
+RUN_MODES = ['STS', 'stats', 'test', 'train_s2s']
 
 # All available algorithms with their constructors.
 ALGORITHMS = {
     'Doc2Vec': doc2vec.Doc2Vec,
     'GloveMean': glove_embeddings_mean.GloveMean,
     'SVD': simpleSVD.SimpleSVD,
-    'Autoencoder': simple_autoencoder.SimpleAutoencoder
+    'Autoencoder': simple_autoencoder.SimpleAutoencoder,
+    'Seq2Seq': seq2seq.Seq2Seq
 }
 
 # All available tokenizers with their constructors.
@@ -94,6 +95,18 @@ Script params
     for algo_name, algo_ctor in ALGORITHMS.items():
         print('\nTesting algorithm {}...\n'.format(algo_name))
         sts.eval_sts_year(12, algo_ctor(), tokenizer, smoke_test=True)
+
+elif args.run_mode == 'train_s2s':
+    alg_kwargs = json.loads(args.alg_kwargs)
+    params_msg = '''
+ Script params
+    run-mode: {0}
+    alg-kwargs: {1}
+'''.format(args.run_mode, alg_kwargs)
+    print(params_msg)
+
+    seq2seq.improve_model(ALGORITHMS['Seq2Seq'](**alg_kwargs),
+                          TOKENIZERS[args.tokenizer]())
 
 else:
     assert False
