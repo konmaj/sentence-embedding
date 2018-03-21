@@ -10,10 +10,20 @@ GLOVE_DIM = 300
 
 
 def get_glove_file(name):
+    '''
+    :param name: name of the tokenizer
+    :return: name of the cropped glove file for the given tokenizer
+    '''
     return GLOVE_DIR.joinpath('glove_cropped_' + name + '.txt')
 
 
 def read_file(file_path, f, should_count=False):
+    '''
+    :param file_path: Name of the glove file, normally just use GLOVE_FILE
+    :param f(word, vec, raw_line): callback for reading the file
+        :param vec: np.array of size GLOVE_DIM with word embedding
+    :param should_count: whether we should print diagnostic info every 100k lines
+    '''
     line_count = 0
     glove_file = open(file_path)
     for raw_line in glove_file:
@@ -28,6 +38,11 @@ def read_file(file_path, f, should_count=False):
 
 
 def create_glove_subset(word_set, name):
+    '''
+    Crops GloVe file to contain only words used in task
+    :param word_set: set of words which is being used in the task
+    :param name: name of the tokenizer
+    '''
     file = open(get_glove_file(name), 'w')
 
     def crop(word, _, line):
