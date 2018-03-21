@@ -17,7 +17,8 @@ RUN_MODES = ['STS', 'stats', 'test']
 ALGORITHMS = {
     'Doc2Vec': doc2vec.Doc2Vec,
     'GloveMean': glove_embeddings_mean.GloveMean,
-    'SVD': simpleSVD.SimpleSVD
+    'SVD': simpleSVD.SimpleSVD,
+    'Autoencoder': simple_autoencoder.SimpleAutoencoder
 }
 
 # All available tokenizers with their constructors.
