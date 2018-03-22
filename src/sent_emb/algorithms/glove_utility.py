@@ -1,8 +1,9 @@
 import numpy as np
 from pathlib import Path
 
-DOWNLOAD_DIR = Path('/', 'opt', 'resources')
-GLOVE_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'glove')
+from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
+
+GLOVE_DIR = EMBEDDINGS_DIR.joinpath('glove')
 RAW_GLOVE_FILE = GLOVE_DIR.joinpath('glove.840B.300d.txt')
 RAW_GLOVE_LINES = 2196017
 GLOVE_FILE = GLOVE_DIR.joinpath('glove_cropped.txt')

@@ -3,7 +3,8 @@ import argparse
 import json
 import sys
 
-from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec, fasttext_mean, seq2seq
+from sent_emb.algorithms import glove_embeddings_mean, simpleSVD, simple_autoencoder, doc2vec,\
+                                fasttext_mean, seq2seq
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts
@@ -60,7 +61,7 @@ Script params
     print(params_msg)
 
     if args.algorithm is None:
-        print('\nERROR: You have to specify algorithm in every run mode except the \'test\' mode.')
+        print('\nERROR: In \'STS\' mode you have to specify algorithm to assess.')
         print('Example: ./run_evaluation.sh Doc2Vec')
         sys.exit(1)
 

@@ -2,13 +2,12 @@ import csv
 import datetime
 import subprocess
 import re
-
-from shutil import copyfile
-
 import numpy as np
 from pathlib import Path
+from shutil import copyfile
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
+from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 from sent_emb.evaluation.model import BaseAlgorithm
 
@@ -22,11 +21,10 @@ TEST_NAMES = {
     16: ['answer-answer', 'headlines', 'plagiarism', 'postediting', 'question-question'],
 }
 
-DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
-LOG_PATH = Path('/', 'opt', 'resources', 'log')
+LOG_PATH = RESOURCES_DIR.joinpath('log')
 
 # Script from STS16 seems to be backward compatible with file formats from former years.
-GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
+GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
 def vector_len(vec):
@@ -50,7 +48,7 @@ def compute_similarity(emb_pairs):
 
 def get_sts_path(year):
     assert year in TEST_NAMES
-    return DATASETS_PATH.joinpath('STS{}'.format(year))
+    return DATASETS_DIR.joinpath('STS{}'.format(year))
 
 
 def get_sts_input_path(year, test_name, use_train_set=False):
@@ -308,4 +306,3 @@ def eval_sts_all(algorithm, tokenizer):
         writer.writerow(test_names)
         writer.writerow(['{:.3f}'.format(res) for res in results])
     print('Complete results are in file\n{}\n'.format(file_path))
-

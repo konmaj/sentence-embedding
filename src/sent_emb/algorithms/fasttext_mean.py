@@ -1,10 +1,11 @@
 import numpy as np
 
 from sent_emb.downloader.downloader import get_fasttext
-from sent_emb.algorithms.glove_utility import GLOVE_DIM, DOWNLOAD_DIR
+from sent_emb.algorithms.glove_utility import GLOVE_DIM
+from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
 from sent_emb.algorithms.unknown import Unknown
 
-FASTTEXT_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'fasttext')
+FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
 FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki-news-300d-1M-subword.vec')
 
 

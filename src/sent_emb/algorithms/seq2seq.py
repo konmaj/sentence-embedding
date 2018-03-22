@@ -5,7 +5,8 @@ import sys
 from keras.models import Model, load_model
 from keras.layers import Input, LSTM, Dense, GRU
 
-from sent_emb.algorithms.glove_utility import read_file
+from sent_emb.algorithms.glove_utility import read_file, GLOVE_DIR
+from sent_emb.algorithms.path_utility import RESOURCES_DIR
 from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.evaluation import sts
@@ -15,10 +16,9 @@ EPOCHS = 10
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 GLOVE_DIM = 50
-GLOVE_50D_FILE = Path('/', 'opt', 'resources', 'embeddings', 'glove', 'glove.6B.50d.txt')
+GLOVE_50D_FILE = GLOVE_DIR.joinpath('glove.6B.50d.txt')
 
-WEIGHTS_PATH = Path('/', 'opt', 'resources', 'weights')
-WEIGHTS_PATH.mkdir(parents=True, exist_ok=True)
+WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
 
 
 def replace_with_embs(sents, unknown_vec):
@@ -173,8 +173,8 @@ class Seq2Seq(BaseAlgorithm):
             if self.force_load:
                 error_msg = \
 '''ERROR: Weights not found and force_load==True
-       If you really want to create new files with weights, please add keyword argument
-       force_load==false using --alg-kwargs param of the script.
+       If you really want to create new files with weights, please add
+       --alg-kwargs='{"force_load": false}' as a param of the script.
 '''
                 print(error_msg)
                 assert False
@@ -210,6 +210,7 @@ class Seq2Seq(BaseAlgorithm):
                        batch_size=BATCH_SIZE, epochs=epochs)
 
         # Save model
+        WEIGHTS_PATH.mkdir(parents=True, exist_ok=True)
         self.model.save_weights(str(self.all_weights_path))
         self.encoderModel.save_weights(str(self.encoder_weights_path))
 
