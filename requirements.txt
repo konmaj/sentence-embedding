@@ -1,5 +1,4 @@
 numpy==1.13.3
-pandas==0.21.0
 scipy==1.0.0
 scikit-learn==0.19.1
 tensorflow==1.4.0
@@ -9,3 +8,4 @@ nlpkit==0.35
 nltk==3.2.4
 gensim==3.3.0
 h5py==2.7.1
+tensorflow-gpu==1.6.0

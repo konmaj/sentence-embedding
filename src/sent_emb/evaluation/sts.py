@@ -23,6 +23,7 @@ TEST_NAMES = {
 
 LOG_PATH = RESOURCES_DIR.joinpath('log')
 
+
 # Script from STS16 seems to be backward compatible with file formats from former years.
 GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
@@ -109,7 +110,7 @@ def read_sts_input(file_path, tokenizer):
         TODO: unify return type - only numpy or only python lists.
     '''
     sents = []
-    with open(file_path, 'r') as test_file:
+    with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in test_reader:
             assert len(row) == 2 \
@@ -166,7 +167,7 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     similarities = compute_similarity(embs)
 
     # write file with similarities
-    with open(output_path, 'w+') as out_file:
+    with open(str(output_path), 'w+') as out_file:
         for sim in similarities:
             out_file.write('{}\n'.format(sim))
 
@@ -230,7 +231,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
         # compare out with gold standard
         script = GRADING_SCRIPT_PATH
         output = subprocess.check_output(
-            ['perl', script, gs_path, out_path],
+            ['perl', str(script), str(gs_path), str(out_path)],
             universal_newlines=True,
         )
         score = get_grad_script_res(output) * 100
@@ -300,7 +301,7 @@ def eval_sts_all(algorithm, tokenizer):
     # write complete log file
     file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
     file_path = LOG_PATH.joinpath(file_name)
-    with open(file_path, 'w+') as log_file:
+    with open(str(file_path), 'w+') as log_file:
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         writer.writerow(year_names)
         writer.writerow(test_names)
