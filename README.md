@@ -35,32 +35,32 @@ scripts/run_virtualenv.sh.
 
 Evaluate algorithm Doc2Vec using default run mode with default tokenizer.
 ```
-$ scripts/run_evaluation.sh Doc2Vec
+$ scripts/run_docker.sh Doc2Vec
 ```
 
 Evaluate algorithm Doc2Vec on STS task (explicit ```-r STS``` is not necessary here) with Stanford tokenizer.
 ```
-$ scripts/run_evaluation.sh Doc2Vec -r STS -t Stanford --alg-kwargs='{"vector_dim": 20, "epochs": 5}'
+$ scripts/run_docker.sh Doc2Vec -r STS -t Stanford --alg-kwargs='{"vector_dim": 20, "epochs": 5}'
 ```
 Doc2Vec object will be constructed as follows: ```Doc2Vec(vector_dim=20, epochs=5)```.
 ```--alg-kwargs``` parameter has to be in JSON format.
 
 Print statistics about STS datasets
 ```
-$ scripts/run_evaluation.sh -r stats
+$ scripts/run_docker.sh -r stats
 ```
 
 Run test of evaluation on tiny training set for all algorithms and tokenizers.
 ```
-$ scripts/run_evaluation.sh -r test
+$ scripts/run_docker.sh -r test
 ```
 This command tests only successful termination - it does not any checks of correctness.
 
 Train Seq2Seq model - abort if model not exist.
 ```
-$ scripts/run_evaluation.sh -r train_s2s
+$ scripts/run_docker.sh -r train_s2s
 ```
 Train Seq2Seq model - create if model not exist.
 ```
-$ scripts/run_evaluation.sh -r train_s2s --alg-kwargs='{"force_load": false}'
+$ scripts/run_docker.sh -r train_s2s --alg-kwargs='{"force_load": false}'
 ```
