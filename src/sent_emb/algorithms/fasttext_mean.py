@@ -1,73 +1,103 @@
 import numpy as np
 
 from sent_emb.downloader.downloader import get_fasttext
-from sent_emb.algorithms.glove_utility import GLOVE_DIM, DOWNLOAD_DIR
-from sent_emb.algorithms.unknown import Unknown
+from sent_emb.algorithms.fasttext_utility import read_file, FASTTEXT_UNKNOWN, FASTTEXT_CROPPED
+from sent_emb.algorithms.unknown import UnknownVector
+from sent_emb.evaluation.model import BaseAlgorithm
+from pathlib import Path
 
-FASTTEXT_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'fasttext')
-FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki-news-300d-1M-subword.vec')
-
-
-def read_file(file_path, f, should_count=False):
-    line_count = 0
-    glove_file = open(file_path)
-    header = ""
-    for raw_line in glove_file:
-        if header == "":
-            header = raw_line
-        else:
-            line = raw_line[:-2].split(' ')
-            word = line[0]
-            vec = np.array(line[1:], dtype=np.float)
-            f(word, vec, raw_line)
-            if should_count:
-                line_count += 1
-                if line_count % (100 * 1000) == 0:
-                    print('  line_count: ', line_count)
+from sent_emb.algorithms.simpleSVD import SimpleSVD, ExternalProbFocusUnknown
 
 
 def normalize(vec):
     return vec / np.linalg.norm(vec)
 
 
-class FastText(Unknown):
-    def __init__(self):
-        Unknown.__init__(self)
-        self.mem = {}
-        self.sum = np.array([])
-        self.count = 0
-
-    def see(self, w, vec):
-        self.mem[w] = vec
-        if len(self.sum) == 0:
-            self.sum = vec
-        else:
-            self.sum += vec
-        self.count += 1
-
-    def get(self, word):
-        if word not in self.mem:
-            return self.sum / self.count
-        return self.mem[word]
+def get_unknown_file():
+    return Path('/', 'opt', 'resources', 'embeddings', 'fasttext', 'queries.txt')
 
 
-def embeddings(sents, word_embedding=FastText()):
-    get_fasttext()
+class FastText():
+    def embeddings(self, used):
+        answer = {}
 
-    result = np.zeros((sents.shape[0], GLOVE_DIM), dtype=np.float)
-    count = np.zeros((sents.shape[0], 1))
+        def process(word, vec, _):
+            if word in used:
+                answer[word] = normalize(vec)
 
-    def process(word, vec, _):
-        word_embedding.see(word, vec)
+        read_file(FASTTEXT_CROPPED, process)
+        read_file(FASTTEXT_UNKNOWN, process)
+        return answer
 
-    read_file(FASTTEXT_FILE, process, should_count=True)
 
-    for idx, sent in enumerate(sents):
-        for word in sent:
-            if word != '':
-                result[idx] += normalize(word_embedding.get(word))
+class FastTextWithoutUnknown():
+    def embeddings(self, used):
+        answer = {}
+        unknown = UnknownVector(300)
+
+        def process(word, vec, _):
+            unknown.see(word, vec)
+            if word in used:
+                answer[word] = vec
+
+        read_file(FASTTEXT_CROPPED, process)
+
+        for word in used:
+            if word not in answer:
+                answer[word] = unknown.get(word)
+
+        return answer
+
+
+class FastTextMean(BaseAlgorithm):
+    def __init__(self, fast_text=FastText()):
+        self.fastText = fast_text
+
+    def fit(self, _):
+        return self
+
+    def transform(self, sents):
+        used = set()
+        for sent in sents:
+            for word in sent:
+                used.add(word)
+
+        wordvec = self.fastText.embeddings(used)
+
+        for x in wordvec:
+            print(wordvec[x].shape[0])
+            result = np.zeros((sents.shape[0], wordvec[x].shape[0]), dtype=np.float)
+            break
+
+        count = np.zeros((sents.shape[0], 1))
+
+        for idx, sent in enumerate(sents):
+            for word in sent:
+                result[idx] += normalize(wordvec[word])
                 count[idx][0] += 1
 
-    result /= count
+        result /= count
 
-    return result
+        return result
+
+
+class FastTextMeanWithoutUnknown(BaseAlgorithm):
+    def __init__(self):
+        self.model = FastTextMean(FastTextWithoutUnknown())
+
+    def fit(self, sents):
+        return self.model.fit(sents)
+
+    def transform(self, sents):
+        return self.model.transform(sents)
+
+
+class FastTextSVD(BaseAlgorithm):
+    def __init__(self, param_a=0.001, prob=ExternalProbFocusUnknown()):
+        self.simpleSVD = SimpleSVD(FastText(), param_a, prob)
+
+    def fit(self, sents):
+        return self.simpleSVD.fit(sents)
+
+    def transform(self, sents):
+        return self.simpleSVD.transform(sents)

@@ -11,6 +11,7 @@ from pathlib import Path
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 from sent_emb.evaluation.model import BaseAlgorithm
+from sent_emb.algorithms.fasttext_utility import fasttext_preprocessing
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
 
@@ -269,6 +270,17 @@ def create_glove_sts_subset(tokenizer):
                         sts_words.add(word)
 
         create_glove_subset(sts_words, tokenizer.name())
+
+    sts_words = set()
+    for year, test_names in sorted(TEST_NAMES.items()):
+        for test_name in test_names:
+            input_path = get_sts_input_path(year, test_name)
+
+            sents = read_sts_input(input_path, tokenizer)
+            for sent in sents:
+                for word in sent:
+                    sts_words.add(word)
+    fasttext_preprocessing(sts_words, tokenizer.name())
 
     copyfile(get_glove_file(tokenizer.name()), GLOVE_FILE)
 

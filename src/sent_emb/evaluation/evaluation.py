@@ -19,7 +19,10 @@ ALGORITHMS = {
     'GloveMean': glove_embeddings_mean.GloveMean,
     'SVD': simpleSVD.SimpleSVD,
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
-    'Seq2Seq': seq2seq.Seq2Seq
+    'Seq2Seq': seq2seq.Seq2Seq,
+    'FastTextMean': fasttext_mean.FastTextMean,
+    'FastTextSVD': fasttext_mean.FastTextSVD,
+    'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
 }
 
 # All available tokenizers with their constructors.
