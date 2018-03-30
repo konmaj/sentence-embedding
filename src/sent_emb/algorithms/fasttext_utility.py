@@ -2,12 +2,15 @@ import numpy as np
 from pathlib import Path
 from shutil import copyfile
 
-DOWNLOAD_DIR = Path('/', 'opt', 'resources')
-FASTTEXT_DIR = DOWNLOAD_DIR.joinpath('embeddings', 'fasttext')
+from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
+from sent_emb.downloader.downloader import mkdir_if_not_exist, zip_download_and_extract
+
+FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
 
 FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki-news-300d-1M-subword.vec')
 FASTTEXT_CROPPED = FASTTEXT_DIR.joinpath('cropped.txt')
 FASTTEXT_UNKNOWN = FASTTEXT_DIR.joinpath('unknown_answers.txt')
+
 
 def get_unknown_file(name):
     return FASTTEXT_DIR.joinpath('unknown_' + name + '.txt')
@@ -69,12 +72,27 @@ def create_fasttext_subset(word_set, name):
     unknown.close()
 
 
-def fasttext_preprocessing(word_set, name):
+def fasttext_preprocessing(task, name):
     if get_unknown_file(name).exists() and get_cropped_file(name).exists():
         print('Cropped Fasttext file exists')
     else:
         print('Creating Fasttext cropped file')
-        create_fasttext_subset(word_set, name)
+        create_fasttext_subset(task.all_words(), name)
 
     copyfile(get_cropped_file(name), FASTTEXT_CROPPED)
     copyfile(get_answers_file(name), FASTTEXT_UNKNOWN)
+
+
+def get_fasttext_resources(task):
+    print('Checking for fastText')
+    URL = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.zip'
+
+    path_emb = EMBEDDINGS_DIR
+    mkdir_if_not_exist(path_emb)
+    path = path_emb.joinpath('fasttext')
+    if mkdir_if_not_exist(path):
+        print('FastText not found')
+        zip_download_and_extract(URL, path)
+    else:
+        print('Found fastText')
+    fasttext_preprocessing(task, task.tokenizer_name())

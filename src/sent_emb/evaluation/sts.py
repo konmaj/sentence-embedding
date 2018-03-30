@@ -4,12 +4,11 @@ import subprocess
 import re
 import numpy as np
 from pathlib import Path
-from shutil import copyfile
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist
-from sent_emb.evaluation.model import BaseAlgorithm
+from sent_emb.evaluation.model import BaseAlgorithm, Task
 from sent_emb.algorithms.fasttext_utility import fasttext_preprocessing
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
@@ -27,6 +26,36 @@ LOG_PATH = RESOURCES_DIR.joinpath('log')
 
 # Script from STS16 seems to be backward compatible with file formats from former years.
 GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
+
+
+def lazyprop(fn):
+    attr_name = '_lazy_' + fn.__name__
+    @property
+    def _lazyprop(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
+        return getattr(self, attr_name)
+    return _lazyprop
+
+
+class STS(Task):
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+
+    @lazyprop
+    def all_words(self):
+        sts_words = set()
+        for year, test_names in sorted(TEST_NAMES.items()):
+            for test_name in test_names:
+                input_path = get_sts_input_path(year, test_name)
+
+                sents = read_sts_input(input_path, self.tokenizer)
+                for sent in sents:
+                    for word in sent:
+                        sts_words.add(word)
+
+    def tokenizer_name(self):
+        return self.tokenizer.name()
 
 
 def vector_len(vec):
@@ -249,41 +278,6 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
     return results
 
 
-def create_glove_sts_subset(tokenizer):
-    '''
-    1) Computes set of words which appeared in STS input files.
-    2) Creates reduced GloVe file, which contains only words that appeared
-       in STS.
-    '''
-    if get_glove_file(tokenizer.name()).exists():
-        print('Cropped GloVe file already exists')
-    else:
-        sts_words = set()
-        for year, test_names in sorted(TEST_NAMES.items()):
-            for test_name in test_names:
-                input_path = get_sts_input_path(year, test_name)
-
-                sents = read_sts_input(input_path, tokenizer)
-                for sent in sents:
-                    for word in sent:
-                        sts_words.add(word)
-
-        create_glove_subset(sts_words, tokenizer.name())
-
-    sts_words = set()
-    for year, test_names in sorted(TEST_NAMES.items()):
-        for test_name in test_names:
-            input_path = get_sts_input_path(year, test_name)
-
-            sents = read_sts_input(input_path, tokenizer)
-            for sent in sents:
-                for word in sent:
-                    sts_words.add(word)
-    fasttext_preprocessing(sts_words, tokenizer.name())
-
-    copyfile(get_glove_file(tokenizer.name()), GLOVE_FILE)
-
-
 def eval_sts_all(algorithm, tokenizer):
     '''
     Evaluates given embedding algorithm on all STS12-STS16 files.
@@ -293,7 +287,8 @@ def eval_sts_all(algorithm, tokenizer):
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
     '''
-    create_glove_sts_subset(tokenizer)
+    task = STS(tokenizer)
+    algorithm.get_resources(task)
 
     year_names = []
     test_names = []

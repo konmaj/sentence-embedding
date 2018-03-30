@@ -48,3 +48,10 @@ class UnknownRandom(Unknown):
                 new_vec[i] = np.random.uniform(self.min[i], self.max[i])
             self.gave[word] = new_vec
         return self.gave[word]
+
+
+class NoUnknown(Unknown):
+    def see(self, _):
+        pass
+    def get(self, _):
+        assert False

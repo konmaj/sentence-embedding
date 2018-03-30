@@ -67,6 +67,9 @@ class SimpleAutoencoder(BaseAlgorithm):
         self.maxlen = maxlen
         self.target_dim = target_dim
 
+    def get_resources(self, _):
+        pass
+
     def fit(self, sents):
         x_train = parse_sents(sents, self.unknown, self.maxlen)
 

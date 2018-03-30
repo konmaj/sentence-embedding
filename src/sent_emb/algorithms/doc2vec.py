@@ -13,6 +13,9 @@ class Doc2Vec(BaseAlgorithm):
         self.epochs = epochs
         self.n_threads = n_threads
 
+    def get_resources(self, task):
+        pass
+
     def fit(self, sents):
         self.model = gensim.models.doc2vec.Doc2Vec(vector_size=self.vector_dim,
                                                    min_count=self.min_count,

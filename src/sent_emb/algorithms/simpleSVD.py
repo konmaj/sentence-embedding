@@ -5,7 +5,7 @@ import gzip
 
 from sklearn.utils.extmath import randomized_svd
 
-from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
+from sent_emb.algorithms.glove_utility import GloVe
 from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.downloader.downloader import get_word_frequency
@@ -112,28 +112,8 @@ class ExternalProbFocusUnknown(Prob):
                 return self.simple.count[word] / self.all
 
 
-class GloVe():
-    def __init__(self, unknown):
-        self.unknown = unknown
-
-    def embeddings(self, words):
-        result = {}
-
-        def process(word, vec, _):
-            self.unknown.see(word, vec)
-            result[word] = vec
-
-        read_file(GLOVE_FILE, process)
-
-        for word in words:
-            if word not in result:
-                result[word] = self.unknown.get(word)
-
-        return result
-
-
 class SimpleSVD(BaseAlgorithm):
-    def __init__(self, embeddings=GloVe(UnknownVector(GLOVE_DIM)), param_a=0.001, prob=ExternalProb()):
+    def __init__(self, embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProb()):
         '''
             unknown: handler of words not appearing in GloVe
             param_a: parameter of scale for probabilities
@@ -143,6 +123,10 @@ class SimpleSVD(BaseAlgorithm):
         self.param_a = param_a
         self.prob = prob
         self.unknown_prob_mult = 1
+
+    def get_resources(self, task):
+        self.embeddings.get_resources(task)
+        self.prob.get_resources()
 
     def fit(self, sents):
         pass
@@ -157,7 +141,7 @@ class SimpleSVD(BaseAlgorithm):
 
         wordvec = self.embeddings.embeddings(words)
 
-        result = np.zeros((sents.shape[0], GLOVE_DIM), dtype=np.float)
+        result = np.zeros((sents.shape[0], self.embeddings.get_dim()), dtype=np.float)
         count = np.zeros((sents.shape[0], 1))
 
         for idx, sent in enumerate(sents):

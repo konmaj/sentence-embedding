@@ -1,11 +1,13 @@
 import numpy as np
 
-from sent_emb.algorithms.fasttext_utility import read_file, FASTTEXT_UNKNOWN, FASTTEXT_CROPPED
-from sent_emb.algorithms.unknown import UnknownVector
+from sent_emb.algorithms.fasttext_utility import read_file, FASTTEXT_UNKNOWN, FASTTEXT_CROPPED, get_fasttext_resources
+from sent_emb.algorithms.unknown import UnknownVector, NoUnknown
+from sent_emb.algorithms.glove_embeddings_mean import WordVectorsMean
 from sent_emb.evaluation.model import BaseAlgorithm
 from pathlib import Path
 
 from sent_emb.algorithms.simpleSVD import SimpleSVD, ExternalProbFocusUnknown
+
 
 def normalize(vec):
     return vec / np.linalg.norm(vec)
@@ -16,6 +18,12 @@ def get_unknown_file():
 
 
 class FastText():
+    def get_dim(self):
+        return 300
+
+    def get_resources(self, task):
+        get_fasttext_resources(task)
+
     def embeddings(self, used):
         answer = {}
 
@@ -29,6 +37,12 @@ class FastText():
 
 
 class FastTextWithoutUnknown():
+    def get_dim(self):
+        return 300
+
+    def get_resources(self, task):
+        get_fasttext_resources(task)
+
     def embeddings(self, used):
         answer = {}
         unknown = UnknownVector(300)
@@ -47,47 +61,14 @@ class FastTextWithoutUnknown():
         return answer
 
 
-class FastTextMean(BaseAlgorithm):
-    def __init__(self, fast_text=FastText()):
-        self.fastText = fast_text
-
-    def fit(self, _):
-        return self
-
-    def transform(self, sents):
-        used = set()
-        for sent in sents:
-            for word in sent:
-                used.add(word)
-
-        wordvec = self.fastText.embeddings(used)
-
-        for x in wordvec:
-            print(wordvec[x].shape[0])
-            result = np.zeros((sents.shape[0], wordvec[x].shape[0]), dtype=np.float)
-            break
-
-        count = np.zeros((sents.shape[0], 1))
-
-        for idx, sent in enumerate(sents):
-            for word in sent:
-                result[idx] += normalize(wordvec[word])
-                count[idx][0] += 1
-
-        result /= count
-
-        return result
+class FastTextMean(WordVectorsMean):
+    def __init__(self):
+        self.word_embeddings = FastText()
 
 
 class FastTextMeanWithoutUnknown(BaseAlgorithm):
     def __init__(self):
-        self.model = FastTextMean(FastTextWithoutUnknown())
-
-    def fit(self, sents):
-        return self.model.fit(sents)
-
-    def transform(self, sents):
-        return self.model.transform(sents)
+        self.word_embeddings = FastTextWithoutUnknown()
 
 
 class FastTextSVD(BaseAlgorithm):

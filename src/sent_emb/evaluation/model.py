@@ -1,6 +1,18 @@
 from abc import ABC, abstractmethod
 
 
+class Task(ABC):
+    '''
+    Task class, which represents all data Algorithm should know beforehand about it.
+    '''
+
+    @abstractmethod
+    def all_words(self):
+        pass
+
+    def tokenizer_name(self):
+        pass
+
 class BaseAlgorithm(ABC):
     '''
     Base abstract class, which represents algorithms, which compute sentence embeddings.
@@ -10,6 +22,16 @@ class BaseAlgorithm(ABC):
     should yield valid (but maybe not optimally tuned) object of SubclassName
     (for the purpose of smoketest).
     '''
+
+    @abstractmethod
+    def get_resources(self, task):
+        '''
+        Called once before all evaluations. Prepares external resources
+        (downloads data, crops files for better performace).
+        :param task: Task object
+        '''
+        pass
+
 
     @abstractmethod
     def fit(self, sents):
