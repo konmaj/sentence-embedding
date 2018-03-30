@@ -24,6 +24,9 @@ ALGORITHMS = {
     'Seq2Seq': seq2seq.Seq2Seq
 }
 
+# Algorithms excluded from the smoke test
+EXCLUDED_FROM_TEST = ['Seq2Seq']
+
 # All available tokenizers with their constructors.
 TOKENIZERS = {
     'NLTK': PreprocessingNltk,
@@ -88,15 +91,18 @@ Script params
 '''.format(args.run_mode)
     print(params_msg)
 
-    algorithm = ALGORITHMS['Doc2Vec']() # take any algorithm
+    algorithm = ALGORITHMS['Doc2Vec']()  # take any algorithm
     for token_name, token_ctor in TOKENIZERS.items():
         print('\nTesting tokenizer {}...\n'.format(token_name))
         sts.eval_sts_year(12, algorithm, token_ctor(), smoke_test=True)
 
-    tokenizer = TOKENIZERS['NLTK']() # take any tokenizer
+    tokenizer = TOKENIZERS['NLTK']()  # take any tokenizer
     for algo_name, algo_ctor in ALGORITHMS.items():
         print('\nTesting algorithm {}...\n'.format(algo_name))
-        sts.eval_sts_year(12, algo_ctor(), tokenizer, smoke_test=True)
+        if algo_name in EXCLUDED_FROM_TEST:
+            print('...algorithm {} is excluded from the test - skip.'.format(algo_name))
+        else:
+            sts.eval_sts_year(12, algo_ctor(), tokenizer, smoke_test=True)
 
 elif args.run_mode == 'train_s2s':
     alg_kwargs = json.loads(args.alg_kwargs)
