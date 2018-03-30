@@ -1,13 +1,11 @@
 import numpy as np
 
-from sent_emb.downloader.downloader import get_fasttext
 from sent_emb.algorithms.fasttext_utility import read_file, FASTTEXT_UNKNOWN, FASTTEXT_CROPPED
 from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.evaluation.model import BaseAlgorithm
 from pathlib import Path
 
 from sent_emb.algorithms.simpleSVD import SimpleSVD, ExternalProbFocusUnknown
-
 
 def normalize(vec):
     return vec / np.linalg.norm(vec)

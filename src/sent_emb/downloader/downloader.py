@@ -3,8 +3,11 @@ from urllib.request import urlretrieve
 from shutil import unpack_archive, move
 from os import listdir, rmdir
 
+from sent_emb.algorithms.path_utility import (RESOURCES_DIR,
+                                              DATASETS_DIR,
+                                              EMBEDDINGS_DIR,
+                                              OTHER_RESOURCES_DIR)
 
-DOWNLOAD_DIR = Path('/', 'opt', 'resources')
 
 STS_TEST_URLS = {
     'STS12' : 'http://ixa2.si.ehu.es/stswiki/images/4/40/STS2012-en-test.zip',
@@ -18,7 +21,7 @@ STS_TEST_URLS = {
 # In subsequent years former STS test data (and STS12 training data) were used for training.
 STS12_TRAIN_URL = 'http://ixa2.si.ehu.es/stswiki/images/e/e4/STS2012-en-train.zip'
 
-STS_DIRS = { sts : DOWNLOAD_DIR.joinpath('datasets', sts) for sts in STS_TEST_URLS.keys() }
+STS_DIRS = { sts : DATASETS_DIR.joinpath(sts) for sts in STS_TEST_URLS.keys() }
 
 
 def mkdir_if_not_exist(dir_path):
@@ -133,7 +136,7 @@ def get_word_frequency():
     print('Checking for word frequency:')
     URL = 'http://www.kilgarriff.co.uk/BNClists/all.num.gz'
 
-    path = DOWNLOAD_DIR.joinpath('other')
+    path = OTHER_RESOURCES_DIR
     mkdir_if_not_exist(path)
     word_frequency_path = path.joinpath('word_frequency')
     if mkdir_if_not_exist(word_frequency_path):
@@ -147,7 +150,7 @@ def get_fasttext():
     print('Checking for fastText')
     URL = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki-news-300d-1M-subword.vec.zip'
 
-    path_emb = DOWNLOAD_DIR.joinpath('embeddings')
+    path_emb = EMBEDDINGS_DIR
     mkdir_if_not_exist(path_emb)
     path = path_emb.joinpath('fasttext')
     if mkdir_if_not_exist(path):

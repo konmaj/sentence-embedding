@@ -5,13 +5,14 @@ import gzip
 
 from sklearn.utils.extmath import randomized_svd
 
-from sent_emb.evaluation.model import BaseAlgorithm
-from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.algorithms.glove_utility import GLOVE_DIM, GLOVE_FILE, read_file
+from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
+from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.downloader.downloader import get_word_frequency
+from sent_emb.evaluation.model import BaseAlgorithm
 
-WORD_FREQUENCY_FILE = Path('/', 'opt', 'resources', 'other', 'word_frequency', 'all.num.gz')
 
+WORD_FREQUENCY_FILE = OTHER_RESOURCES_DIR.joinpath('word_frequency', 'all.num.gz')
 
 
 class Prob(ABC):

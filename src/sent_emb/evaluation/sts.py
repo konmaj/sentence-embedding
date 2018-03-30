@@ -2,13 +2,12 @@ import csv
 import datetime
 import subprocess
 import re
-
-from shutil import copyfile
-
 import numpy as np
 from pathlib import Path
+from shutil import copyfile
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
+from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist
 from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.algorithms.fasttext_utility import fasttext_preprocessing
@@ -23,11 +22,11 @@ TEST_NAMES = {
     16: ['answer-answer', 'headlines', 'plagiarism', 'postediting', 'question-question'],
 }
 
-DATASETS_PATH = Path('/', 'opt', 'resources', 'datasets')
-LOG_PATH = Path('/', 'opt', 'resources', 'log')
+LOG_PATH = RESOURCES_DIR.joinpath('log')
+
 
 # Script from STS16 seems to be backward compatible with file formats from former years.
-GRADING_SCRIPT_PATH = DATASETS_PATH.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
+GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
 def vector_len(vec):
@@ -51,7 +50,7 @@ def compute_similarity(emb_pairs):
 
 def get_sts_path(year):
     assert year in TEST_NAMES
-    return DATASETS_PATH.joinpath('STS{}'.format(year))
+    return DATASETS_DIR.joinpath('STS{}'.format(year))
 
 
 def get_sts_input_path(year, test_name, use_train_set=False):
@@ -112,7 +111,7 @@ def read_sts_input(file_path, tokenizer):
         TODO: unify return type - only numpy or only python lists.
     '''
     sents = []
-    with open(file_path, 'r') as test_file:
+    with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in test_reader:
             assert len(row) == 2 \
@@ -169,7 +168,7 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     similarities = compute_similarity(embs)
 
     # write file with similarities
-    with open(output_path, 'w+') as out_file:
+    with open(str(output_path), 'w+') as out_file:
         for sim in similarities:
             out_file.write('{}\n'.format(sim))
 
@@ -233,7 +232,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
         # compare out with gold standard
         script = GRADING_SCRIPT_PATH
         output = subprocess.check_output(
-            ['perl', script, gs_path, out_path],
+            ['perl', str(script), str(gs_path), str(out_path)],
             universal_newlines=True,
         )
         score = get_grad_script_res(output) * 100
@@ -314,10 +313,9 @@ def eval_sts_all(algorithm, tokenizer):
     # write complete log file
     file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
     file_path = LOG_PATH.joinpath(file_name)
-    with open(file_path, 'w+') as log_file:
+    with open(str(file_path), 'w+') as log_file:
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         writer.writerow(year_names)
         writer.writerow(test_names)
         writer.writerow(['{:.3f}'.format(res) for res in results])
     print('Complete results are in file\n{}\n'.format(file_path))
-
