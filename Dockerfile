@@ -11,9 +11,14 @@ ENV CLASSPATH=${STANFORD_DIR}/stanford-postagger-full-2015-04-20/stanford-postag
 ENV STANFORD_MODELS=$STANFORD_DIR/stanford-postagger-full-2015-04-20/models:$STANFORD_DIR/stanford-ner-2015-04-20/classifiers
 
 # Python libraries
-COPY requirements.txt /tmp/
-RUN pip3 install -r /tmp/requirements.txt
+COPY requirements/* /tmp/
 
+RUN pip3 install -r /tmp/1_math.txt
+
+RUN pip3 install -r /tmp/2_nlp.txt
 RUN ["python3", "-c", "import nltk; nltk.download('punkt')"]
+
+RUN pip3 install -r /tmp/3_ml.txt
+RUN pip3 install -r /tmp/4_other.txt
 
 ENTRYPOINT ["python3", "-u"]
