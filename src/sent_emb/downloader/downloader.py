@@ -1,7 +1,11 @@
 from pathlib import Path
 from urllib.request import urlretrieve
-from shutil import unpack_archive, move
+from shutil import move
 from os import listdir, rmdir
+import zipfile
+import errno
+import os
+import shutil
 
 from sent_emb.algorithms.path_utility import (RESOURCES_DIR,
                                               DATASETS_DIR,
@@ -32,6 +36,23 @@ def mkdir_if_not_exist(dir_path):
         return False
 
 
+def low_memory_unpack_archive(zip_pathname, extract_dir):
+    with open(zip_pathname, "rb") as zipsrc:
+        zfile = zipfile.ZipFile(zipsrc)
+        for member in zfile.infolist():
+            target_path = os.path.join(extract_dir, member.filename)
+            if target_path.endswith('/'):  # folder entry, create
+                try:
+                    os.makedirs(target_path)
+                except (OSError, IOError) as err:
+                    # Windows may complain if the folders already exist
+                    if err.errno != errno.EEXIST:
+                        raise
+                continue
+            with open(target_path, 'wb') as outfile, zfile.open(member) as infile:
+                shutil.copyfileobj(infile, outfile)
+
+
 def zip_download_and_extract(url, dir_path):
     dir_pathname = str(dir_path.resolve())
     zip_path = dir_path.joinpath(Path(url).name)
@@ -42,7 +63,7 @@ def zip_download_and_extract(url, dir_path):
 
     print('Extracting into', dir_pathname)
 
-    unpack_archive(zip_pathname, extract_dir=dir_pathname)
+    low_memory_unpack_archive(zip_pathname, extract_dir=dir_pathname)
 
     zip_path.unlink()
 
@@ -131,17 +152,3 @@ def get_datasets():
             get_sts_dataset(sts)
         else:
             print('Found', sts, 'dataset')
-
-
-def get_word_frequency():
-    print('Checking for word frequency:')
-    URL = 'http://www.kilgarriff.co.uk/BNClists/all.num.gz'
-
-    path = OTHER_RESOURCES_DIR
-    mkdir_if_not_exist(path)
-    word_frequency_path = path.joinpath('word_frequency')
-    if mkdir_if_not_exist(word_frequency_path):
-        print('Word frequency not found')
-        urlretrieve(URL, word_frequency_path.joinpath(Path(URL).name))
-    else:
-        print('Found word frequency')

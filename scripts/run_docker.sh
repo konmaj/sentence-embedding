@@ -2,7 +2,6 @@
 
 cd "$(dirname "$0")"
 
-./get_embeddings.sh || exit $?
 ./get_stanfordNLP.sh || exit $?
 
 docker build -t sentence-embedding ..

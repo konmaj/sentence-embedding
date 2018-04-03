@@ -7,11 +7,40 @@ class Task(ABC):
     '''
 
     @abstractmethod
-    def all_words(self):
+    def word_set(self):
         pass
 
     def tokenizer_name(self):
         pass
+
+
+class WordEmbedding(ABC):
+    '''
+    Abstract class, which represents embeddings for words
+    '''
+
+    def get_dim(self):
+        '''
+        :return: size of embeddings
+        '''
+        pass
+
+
+    def get_resources(self, task):
+        '''
+        Called once downloads or prepares needed resources
+        :param task: Task class
+        '''
+        pass
+
+    def embeddings(self, sents):
+        '''
+        Main function, which computes vectors for all words used in task
+        :param sents: list of sentences
+        :return: dictionary of embeddings for words used in sentences
+        '''
+        pass
+
 
 class BaseAlgorithm(ABC):
     '''

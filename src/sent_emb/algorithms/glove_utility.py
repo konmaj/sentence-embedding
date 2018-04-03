@@ -2,12 +2,22 @@ import numpy as np
 from shutil import copyfile
 
 from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
+from sent_emb.downloader.downloader import zip_download_and_extract
+from sent_emb.evaluation.model import WordEmbedding
+from sent_emb.algorithms.unknown import UnknownVector
 
 GLOVE_DIR = EMBEDDINGS_DIR.joinpath('glove')
 RAW_GLOVE_FILE_300 = GLOVE_DIR.joinpath('glove.840B.300d.txt')
 RAW_GLOVE_FILE_50 = GLOVE_DIR.joinpath('glove.6B.50d.txt')
 GLOVE_FILE = GLOVE_DIR.joinpath('glove_cropped.txt')
 GLOVE_DIM = 300
+
+
+def get_zip_file(glove_file):
+    if glove_file == RAW_GLOVE_FILE_300:
+        return glove_file.stem + '.zip'
+    else:
+        return glove_file.with_suffix('').stem + '.zip'
 
 
 def get_glove_file(glove_file, name):
@@ -53,7 +63,7 @@ def create_glove_subset(task, glove_file, name):
         file = open(get_glove_file(glove_file, name), 'w')
 
         def crop(word, _, line):
-            if word in task.word_set():
+            if word in task.word_set:
                 file.write(line)
 
         print('Cropping GloVe set...')
@@ -63,11 +73,25 @@ def create_glove_subset(task, glove_file, name):
     copyfile(get_glove_file(glove_file, name), GLOVE_FILE)
 
 
+def download_glove(glove_file):
+    BASE_URL = "http://nlp.stanford.edu/data/"
+
+    zip_file = get_zip_file(glove_file)
+    print("Check GloVe data...")
+    if glove_file.exists():
+        print("... Embeddings", glove_file, "found")
+    else:
+        print("Downloading", glove_file, "...")
+        zip_download_and_extract(BASE_URL + zip_file, GLOVE_DIR)
+        print("...", glove_file, "downloaded")
+
+
 def get_glove_resources(task, glove_file):
+    download_glove(glove_file)
     create_glove_subset(task, glove_file, task.tokenizer_name())
 
 
-class GloVe:
+class GloVe(WordEmbedding):
     def __init__(self, unknown, glove_file=RAW_GLOVE_FILE_300, dim=300):
         self.unknown = unknown
         self.glove_file = glove_file
@@ -76,7 +100,12 @@ class GloVe:
     def get_resources(self, task):
         get_glove_resources(task, self.glove_file)
 
-    def embeddings(self, words):
+    def embeddings(self, sents):
+        words = set()
+        for sent in sents:
+            for word in sent:
+                words.add(word)
+
         result = {}
 
         def process(word, vec, _):
@@ -95,5 +124,6 @@ class GloVe:
         return self.dim
 
 
-def gloVe_small(unknown):
-    return GloVe(unknown, glove_file=RAW_GLOVE_FILE_50, dim=50)
+class GloVeSmall(GloVe):
+    def __init__(self, unknown=UnknownVector(50)):
+        super(GloVeSmall, self).__init__(unknown, glove_file=RAW_GLOVE_FILE_50, dim=50)

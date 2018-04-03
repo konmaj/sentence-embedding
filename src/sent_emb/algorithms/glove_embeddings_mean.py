@@ -13,15 +13,9 @@ class WordVectorsMean(BaseAlgorithm):
         pass
 
     def transform(self, sents):
-        used = set()
-        for sent in sents:
-            for word in sent:
-                used.add(word)
-
-        wordvec = self.word_embeddings.embeddings(used)
+        wordvec = self.word_embeddings.embeddings(sents)
 
         result = np.zeros((sents.shape[0], self.word_embeddings.get_dim()), dtype=np.float)
-
         count = np.zeros((sents.shape[0], 1))
 
         for idx, sent in enumerate(sents):

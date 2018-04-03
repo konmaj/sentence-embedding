@@ -1,15 +1,20 @@
 import numpy as np
-from pathlib import Path
+from os import system
 from shutil import copyfile
 
-from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
+from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR, OTHER_RESOURCES_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist, zip_download_and_extract
+from sent_emb.evaluation.model import WordEmbedding
+from sent_emb.algorithms.unknown import UnknownVector, NoUnknown
 
 FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
 
-FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki-news-300d-1M-subword.vec')
+FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki.en').joinpath('wiki.en.vec')
+FASTTEXT_BIN = FASTTEXT_DIR.joinpath('wiki.en').joinpath('wiki.en.bin')
 FASTTEXT_CROPPED = FASTTEXT_DIR.joinpath('cropped.txt')
 FASTTEXT_UNKNOWN = FASTTEXT_DIR.joinpath('unknown_answers.txt')
+
+FASTTEXT_GITHUB_DIR = OTHER_RESOURCES_DIR.joinpath('fasttext').joinpath('fastText-0.1.0')
 
 
 def get_unknown_file(name):
@@ -47,6 +52,20 @@ def read_file(file_path, f, should_count=False, discard=0):
                     print('  line_count: ', line_count)
 
 
+def get_answers(name):
+    question = get_unknown_file(name)
+    answer = get_answers_file(name)
+
+    if not answer.exists():
+        print('Computing FastText vectors for unknown words...')
+        system(FASTTEXT_GITHUB_DIR.as_posix() + '/fasttext print-word-vectors '
+               + FASTTEXT_BIN.as_posix()
+               + ' < ' + question.as_posix() + ' > ' + answer.as_posix())
+        print('...vectors computed')
+    else:
+        print('FastText vectors for unknown words found')
+
+
 def create_fasttext_subset(word_set, name):
     '''
     Creates files with subsets of words for fasttext (unknown and known)
@@ -77,7 +96,9 @@ def fasttext_preprocessing(task, name):
         print('Cropped Fasttext file exists')
     else:
         print('Creating Fasttext cropped file')
-        create_fasttext_subset(task.all_words(), name)
+        create_fasttext_subset(task.word_set, name)
+
+    get_answers(name)
 
     copyfile(get_cropped_file(name), FASTTEXT_CROPPED)
     copyfile(get_answers_file(name), FASTTEXT_UNKNOWN)
@@ -85,14 +106,78 @@ def fasttext_preprocessing(task, name):
 
 def get_fasttext_resources(task):
     print('Checking for fastText')
-    URL = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.zip'
+    EMB_URL = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.zip'
+    GIT_URL = 'https://github.com/facebookresearch/fastText/archive/v0.1.0.zip'
 
-    path_emb = EMBEDDINGS_DIR
-    mkdir_if_not_exist(path_emb)
-    path = path_emb.joinpath('fasttext')
-    if mkdir_if_not_exist(path):
-        print('FastText not found')
-        zip_download_and_extract(URL, path)
+    mkdir_if_not_exist(EMBEDDINGS_DIR)
+    if mkdir_if_not_exist(FASTTEXT_DIR):
+        print('FastText embeddings not found')
+        zip_download_and_extract(EMB_URL, FASTTEXT_DIR)
     else:
-        print('Found fastText')
+        print('Found fastText embeddings')
+
+    mkdir_if_not_exist(OTHER_RESOURCES_DIR)
+    if mkdir_if_not_exist(FASTTEXT_GITHUB_DIR.parent):
+        print('FastText github not found')
+        zip_download_and_extract(GIT_URL, FASTTEXT_GITHUB_DIR.parent)
+    else:
+        print('Found fasttext github')
+    system('cd ' + FASTTEXT_GITHUB_DIR.as_posix() + ' && make')
+
     fasttext_preprocessing(task, task.tokenizer_name())
+
+
+def normalize(vec):
+    return vec / np.linalg.norm(vec)
+
+class FastText(WordEmbedding):
+    def get_dim(self):
+        return 300
+
+    def get_resources(self, task):
+        get_fasttext_resources(task)
+
+    def embeddings(self, sents):
+        words = set()
+        for sent in sents:
+            for word in sent:
+                words.add(word)
+        answer = {}
+
+        def process(word, vec, _):
+            if word in words:
+                answer[word] = normalize(vec)
+
+        read_file(FASTTEXT_CROPPED, process)
+        read_file(FASTTEXT_UNKNOWN, process)
+        return answer
+
+
+class FastTextWithoutUnknown(WordEmbedding):
+    def get_dim(self):
+        return 300
+
+    def get_resources(self, task):
+        get_fasttext_resources(task)
+
+    def embeddings(self, sents):
+        words = set()
+        for sent in sents:
+            for word in sent:
+                words.add(word)
+
+        answer = {}
+        unknown = UnknownVector(300)
+
+        def process(word, vec, _):
+            unknown.see(word, vec)
+            if word in words:
+                answer[word] = vec
+
+        read_file(FASTTEXT_CROPPED, process)
+
+        for word in words:
+            if word not in answer:
+                answer[word] = unknown.get(word)
+
+        return answer

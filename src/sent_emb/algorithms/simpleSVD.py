@@ -2,17 +2,32 @@ import numpy as np
 from pathlib import Path
 from abc import ABC, abstractmethod
 import gzip
+from urllib.request import urlretrieve
 
 from sklearn.utils.extmath import randomized_svd
 
 from sent_emb.algorithms.glove_utility import GloVe
 from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.unknown import UnknownVector
-from sent_emb.downloader.downloader import get_word_frequency
+from sent_emb.downloader.downloader import mkdir_if_not_exist
 from sent_emb.evaluation.model import BaseAlgorithm
 
 
 WORD_FREQUENCY_FILE = OTHER_RESOURCES_DIR.joinpath('word_frequency', 'all.num.gz')
+
+
+def get_word_frequency():
+    print('Checking for word frequency:')
+    URL = 'http://www.kilgarriff.co.uk/BNClists/all.num.gz'
+
+    path = OTHER_RESOURCES_DIR
+    mkdir_if_not_exist(path)
+    word_frequency_path = path.joinpath('word_frequency')
+    if mkdir_if_not_exist(word_frequency_path):
+        print('Word frequency not found')
+        urlretrieve(URL, word_frequency_path.joinpath(Path(URL).name))
+    else:
+        print('Found word frequency')
 
 
 class Prob(ABC):
@@ -50,6 +65,9 @@ class SimpleProb(Prob):
             raise RuntimeError('SimpleProb: get() was called before fit()')
         return self.count[word] / self.all
 
+    def get_resources(self):
+        pass
+
 
 class ExternalProb(Prob):
     def __init__(self):
@@ -61,11 +79,10 @@ class ExternalProb(Prob):
         self.all = 0
         self.count = {}
         self.simple = SimpleProb()
-        get_word_frequency()
         self.simple.transform(sents)
         for lines in gzip.open(WORD_FREQUENCY_FILE):
             sep = lines.split()
-            word = sep[1]
+            word = sep[1].decode("utf-8")
             c = int(sep[0])
             self.all += c
             self.count[word] = c
@@ -79,6 +96,9 @@ class ExternalProb(Prob):
         else:
             return self.simple.get(word)
 
+    def get_resources(self):
+        get_word_frequency()
+
 
 class ExternalProbFocusUnknown(Prob):
     def __init__(self):
@@ -90,11 +110,10 @@ class ExternalProbFocusUnknown(Prob):
         self.all = 0
         self.count = {}
         self.simple = SimpleProb()
-        get_word_frequency()
         self.simple.transform(sents)
         for lines in gzip.open(WORD_FREQUENCY_FILE):
             sep = lines.split()
-            word = sep[1]
+            word = sep[1].decode("utf-8")
             c = int(sep[0])
             self.all += c
             self.count[word] = c
@@ -111,21 +130,23 @@ class ExternalProbFocusUnknown(Prob):
             else:
                 return self.simple.count[word] / self.all
 
+    def get_resources(self):
+        get_word_frequency()
+
 
 class SimpleSVD(BaseAlgorithm):
-    def __init__(self, embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProb()):
+    def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProb()):
         '''
-            unknown: handler of words not appearing in GloVe
             param_a: parameter of scale for probabilities
             prob: object of class Prob, which provides probability of words in corpus
         '''
-        self.embeddings = embeddings
+        self.word_embeddings = word_embeddings
         self.param_a = param_a
         self.prob = prob
         self.unknown_prob_mult = 1
 
     def get_resources(self, task):
-        self.embeddings.get_resources(task)
+        self.word_embeddings.get_resources(task)
         self.prob.get_resources()
 
     def fit(self, sents):
@@ -134,14 +155,9 @@ class SimpleSVD(BaseAlgorithm):
     def transform(self, sents):
         self.prob.transform(sents)
 
-        words = set()
-        for sent in sents:
-            for word in sent:
-                words.add(word)
+        wordvec = self.word_embeddings.embeddings(sents)
 
-        wordvec = self.embeddings.embeddings(words)
-
-        result = np.zeros((sents.shape[0], self.embeddings.get_dim()), dtype=np.float)
+        result = np.zeros((sents.shape[0], self.word_embeddings.get_dim()), dtype=np.float)
         count = np.zeros((sents.shape[0], 1))
 
         for idx, sent in enumerate(sents):

@@ -3,7 +3,6 @@ import datetime
 import subprocess
 import re
 import numpy as np
-from pathlib import Path
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
@@ -28,31 +27,24 @@ LOG_PATH = RESOURCES_DIR.joinpath('log')
 GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
-def lazyprop(fn):
-    attr_name = '_lazy_' + fn.__name__
-    @property
-    def _lazyprop(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
-    return _lazyprop
-
-
 class STS(Task):
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
-    @lazyprop
-    def all_words(self):
-        sts_words = set()
-        for year, test_names in sorted(TEST_NAMES.items()):
-            for test_name in test_names:
-                input_path = get_sts_input_path(year, test_name)
+    @property
+    def word_set(self):
+        if not hasattr(self, '_word_set_value'):
+            sts_words = set()
+            for year, test_names in sorted(TEST_NAMES.items()):
+                for test_name in test_names:
+                    input_path = get_sts_input_path(year, test_name)
 
-                sents = read_sts_input(input_path, self.tokenizer)
-                for sent in sents:
-                    for word in sent:
-                        sts_words.add(word)
+                    sents = read_sts_input(input_path, self.tokenizer)
+                    for sent in sents:
+                        for word in sent:
+                            sts_words.add(word)
+            self._word_set_value = sts_words
+        return self._word_set_value
 
     def tokenizer_name(self):
         return self.tokenizer.name()

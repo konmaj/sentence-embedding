@@ -9,7 +9,7 @@ from keras.layers import Input, LSTM, Dense, GRU
 
 import tensorflow as tf
 
-from sent_emb.algorithms.glove_utility import read_file, GLOVE_DIR
+from sent_emb.algorithms.glove_utility import read_file, GLOVE_DIR, get_glove_resources, RAW_GLOVE_FILE_50
 from sent_emb.algorithms.path_utility import RESOURCES_DIR
 from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.evaluation.model import BaseAlgorithm
@@ -135,11 +135,11 @@ class Seq2Seq(BaseAlgorithm):
         force_load: if True and there aren't proper files with saved model, then __init__
                     print error message and terminates execution of script.
         '''
-        
-        config = tf.ConfigProto(device_count = {'GPU': 1 , 'CPU': 8}) 
-        sess = tf.Session(config=config) 
+
+        config = tf.ConfigProto(device_count = {'GPU': 1 , 'CPU': 8})
+        sess = tf.Session(config=config)
         keras.backend.set_session(sess)
-        
+
         self.name = name
         self.all_weights_path = WEIGHTS_PATH.joinpath('{}.h5'.format(name))
         self.encoder_weights_path = WEIGHTS_PATH.joinpath('{}_enc.h5'.format(name))
@@ -233,6 +233,9 @@ class Seq2Seq(BaseAlgorithm):
         assert embs.shape == (sents_vec.shape[0], LATENT_DIM)
 
         return embs
+
+    def get_resources(self, task):
+        get_glove_resources(task, RAW_GLOVE_FILE_50)
 
 
 def improve_model(algorithm, tokenizer):
