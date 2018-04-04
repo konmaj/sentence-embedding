@@ -53,5 +53,6 @@ class UnknownRandom(Unknown):
 class NoUnknown(Unknown):
     def see(self, _):
         pass
+
     def get(self, _):
         assert False
