@@ -3,6 +3,7 @@ import datetime
 import subprocess
 import re
 import numpy as np
+from collections import namedtuple
 
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
@@ -27,6 +28,20 @@ LOG_PATH = RESOURCES_DIR.joinpath('log')
 GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
+SentPair = namedtuple('SentPair', ['sent1', 'sent2'])
+
+SentPairWithGs = namedtuple('SentPairWithGs', SentPair._fields + ('gs',))
+
+
+def zip_sent_pairs_with_gs(sent_pairs, gold_standards):
+    assert len(sent_pairs) == len(gold_standards)
+    return [SentPairWithGs(*pair, gs=gs) for pair, gs in zip(sent_pairs, gold_standards)]
+
+
+def flatten_sent_pairs(sent_pairs):
+    return [sent for sent_pair in sent_pairs for sent in [sent_pair.sent1, sent_pair.sent2]]
+
+
 class STS(DataSet):
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
@@ -42,9 +57,8 @@ class STS(DataSet):
 
             sts_words = set()
             for input_path in input_paths:
-                sents = read_sts_input(input_path, self.tokenizer)
-                sents = list(zip(*sents))  # TODO: pack into function
-                sents = sents[0] + sents[1]
+                sent_pairs = read_sts_input(input_path, self.tokenizer)
+                sents = flatten_sent_pairs(sent_pairs)
                 for sent in sents:
                     for word in sent:
                         sts_words.add(word)
@@ -141,11 +155,8 @@ def read_sts_input(file_path, tokenizer):
     """
     Reads STS input file at given `file_path`.
 
-    returns: list of pairs of sentences
-        sentence: list of words
-        word: string
+    returns: list of SentPairs
     """
-
     sents = []
     with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -156,7 +167,7 @@ def read_sts_input(file_path, tokenizer):
 
     sents = tokens(tokenizer, sents)
 
-    return list(zip(sents[::2], sents[1::2]))
+    return [SentPair(sent1, sent2) for sent1, sent2 in zip(sents[::2], sents[1::2])]
 
 
 def read_sts_gs(file_path):
@@ -182,9 +193,7 @@ def read_sts_input_with_gs(year, test_name, tokenizer, use_train_set=False):
     gs_path = get_sts_gs_path(year, test_name, use_train_set=use_train_set)
     gold_standards = read_sts_gs(gs_path)
 
-    assert len(sents_pairs) == len(gold_standards)
-
-    return [(sent1, sent2, gs) for ((sent1, sent2), gs) in zip(sents_pairs, gold_standards)]
+    return zip_sent_pairs_with_gs(sents_pairs, gold_standards)
 
 
 def read_train_set(year, tokenizer):
@@ -211,7 +220,8 @@ def read_train_set(year, tokenizer):
         if test_year >= year:
             break
         for test_name in test_names_year:
-            train_data.extend(read_sts_input_with_gs(test_year, test_name, tokenizer, use_train_set=False))
+            train_data.extend(read_sts_input_with_gs(test_year, test_name, tokenizer,
+                                                     use_train_set=False))
 
     return train_data
 
@@ -225,10 +235,9 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     resources/datasets/STS16/data/README.txt
     """
     # read test data
-    sents = read_sts_input(input_path, tokenizer)
-    sents = [sent for s1, s2 in sents  # TODO: pack in a function
-             for sent in [s1, s2]]
-    sents = np.array(sents)
+    sent_pairs = read_sts_input(input_path, tokenizer)
+    sents = flatten_sent_pairs(sent_pairs)
+    sents = np.array(sents)  # TODO: remove conversion to numpy
 
     # compute embeddings
     embs = algorithm.transform(sents)
@@ -280,10 +289,8 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
     print('Reading training set for', sts_name)
     train_sents = read_train_set(year, tokenizer)
 
-    # TODO: remove conversion
-    train_sents = list(zip(*train_sents))[:2]
-    train_sents = list(train_sents[0]) + list(train_sents[1])
-    train_sents = np.array(train_sents)
+    train_sents = flatten_sent_pairs(train_sents)
+    train_sents = np.array(train_sents)  # TODO: remove numpy
 
     if smoke_test:
         train_sents = train_sents[:10]

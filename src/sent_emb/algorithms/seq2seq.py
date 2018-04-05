@@ -11,7 +11,7 @@ from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.path_utility import RESOURCES_DIR
 
 from sent_emb.evaluation.model import BaseAlgorithm
-from sent_emb.evaluation.sts import STS, read_train_set
+from sent_emb.evaluation.sts import STS, read_train_set, flatten_sent_pairs
 
 BATCH_SIZE = 2**8  # Batch size for training.
 EPOCHS = 10
@@ -233,9 +233,7 @@ def improve_model(algorithm, tokenizer):
 
     print('Reading training set...')
 
-    sents = read_train_set(16, tokenizer)
-    sents = list(zip(*sents))  # TODO: pack into function
-    sents = sents[0] + sents[1]
+    sents = flatten_sent_pairs(read_train_set(16, tokenizer))
 
     print('...done.')
 
