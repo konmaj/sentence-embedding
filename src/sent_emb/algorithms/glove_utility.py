@@ -73,7 +73,7 @@ def create_glove_subset(dataset, glove_file, name):
             if word in dataset.word_set:
                 file.write(line)
 
-        print('Cropping GloVe set...')
+        print('Cropping GloVe set - it may take a while...')
         read_file(glove_file, crop, should_count=True)
         file.close()
 

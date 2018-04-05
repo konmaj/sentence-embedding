@@ -34,16 +34,20 @@ class STS(DataSet):
     @property
     def word_set(self):
         if not hasattr(self, '_word_set_value'):
-            sts_words = set()
-            for year, test_names in sorted(TEST_NAMES.items()):
-                for test_name in test_names:
-                    input_path = get_sts_input_path(year, test_name)
+            input_paths = [get_sts_input_path(12, train_name, use_train_set=True)
+                           for train_name in STS12_TRAIN_NAMES]
+            input_paths += [get_sts_input_path(year, test_name, use_train_set=False)
+                            for year, test_names in sorted(TEST_NAMES.items())
+                            for test_name in test_names]
 
-                    sents = read_sts_input(input_path, self.tokenizer)
-                    for sent in sents:
-                        for word in sent:
-                            sts_words.add(word)
+            sts_words = set()
+            for input_path in input_paths:
+                sents = read_sts_input(input_path, self.tokenizer)
+                for sent in sents:
+                    for word in sent:
+                        sts_words.add(word)
             self._word_set_value = sts_words
+
         return self._word_set_value
 
     def tokenizer_name(self):
