@@ -1,17 +1,14 @@
 import numpy as np
 import math
-from pathlib import Path
-import sys
 
 import keras
-from keras.models import Model, load_model
-from keras.layers import Input, LSTM, Dense, GRU
+from keras.models import Model
+from keras.layers import Input, Dense, GRU
 
 import tensorflow as tf
 
-from sent_emb.algorithms.glove_utility import read_file, GLOVE_DIR, get_glove_resources, RAW_GLOVE_FILE_50
+from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.path_utility import RESOURCES_DIR
-from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.evaluation import sts
 
@@ -20,13 +17,12 @@ EPOCHS = 10
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 GLOVE_DIM = 50
-GLOVE_50D_FILE = GLOVE_DIR.joinpath('glove.6B.50d.txt')
 
 WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
 
 
-def replace_with_embs(sents, unknown_vec):
-    '''
+def replace_with_embs(sents, word_embedding):
+    '''TODO: update docstring
     Converts sentences to lists of their word embeddings.
 
     sents: the same as in Seq2Seq.improve_weights() method
@@ -37,30 +33,17 @@ def replace_with_embs(sents, unknown_vec):
         sentence: list of embeddings
         embedding: list of floats
     '''
-    word_set = set()
-    for sent in sents:
-        word_set.update(sent)
 
-    word_embs = {}
-    unknown_vec = UnknownVector(GLOVE_DIM)
-
-    def capture_word_embs(word, vec, _):
-        if word in word_set:
-            word_embs[word] = vec
-            unknown_vec.see(word, vec)
-    print('Reading file:', str(GLOVE_50D_FILE))
-    assert GLOVE_50D_FILE.exists() # should be downloaded before by scripts/get_embeddings.sh
-    read_file(str(GLOVE_50D_FILE), capture_word_embs, should_count=True)
-    print('...done.')
+    word_vec_dict = word_embedding.embeddings(sents)
 
     sents_vec = []
     for sent in sents:
         cur_sent = []
         for word in sent:
-            cur_sent.append(word_embs[word] if word in word_embs else unknown_vec.get(None))
+            cur_sent.append(word_vec_dict[word])
         sents_vec.append(cur_sent)
 
-    return sents_vec, unknown_vec
+    return sents_vec
 
 
 def get_random_subsequence(sequence, result_size):
@@ -93,7 +76,7 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
     returns: list of sentences (in format as 'sents_vec')
              each sentence consists of MAX_ENCODER_WORDS words.
     '''
-    assert 0 <= cut_rate and cut_rate <= 1
+    assert 0 <= cut_rate <= 1
 
     sent_lengths = sorted([len(sent) for sent in sents_vec])
     num_encoder_words = sent_lengths[int(math.ceil(cut_rate * len(sent_lengths)))]
@@ -108,7 +91,7 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
     return sents_vec
 
 
-def preprocess_sents(sents):
+def preprocess_sents(sents, word_embedding):
     '''
     Prepares sentences to be put into Seq2Seq neural net.
 
@@ -117,7 +100,7 @@ def preprocess_sents(sents):
     returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
     '''
 
-    sents_vec, unknown_vec = replace_with_embs(sents, UnknownVector(GLOVE_DIM))
+    sents_vec = replace_with_embs(sents, word_embedding)
 
     padding_vec = np.zeros(GLOVE_DIM, dtype=np.float)
     aligned_sents = align_sents(sents_vec, padding_vec)
@@ -136,15 +119,17 @@ class Seq2Seq(BaseAlgorithm):
                     print error message and terminates execution of script.
         '''
 
-        config = tf.ConfigProto(device_count = {'GPU': 1 , 'CPU': 8})
-        sess = tf.Session(config=config)
-        keras.backend.set_session(sess)
-
         self.name = name
         self.all_weights_path = WEIGHTS_PATH.joinpath('{}.h5'.format(name))
         self.encoder_weights_path = WEIGHTS_PATH.joinpath('{}_enc.h5'.format(name))
 
         self.force_load = force_load
+
+        self.word_embedding = GloVeSmall()
+
+        config = tf.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+        sess = tf.Session(config=config)
+        keras.backend.set_session(sess)
 
         # Define an input sequence and process it.
         encoder_inputs = Input(shape=(None, GLOVE_DIM))
@@ -203,7 +188,7 @@ class Seq2Seq(BaseAlgorithm):
         sents: numpy array of tokenized sentences
                (shaped as in sent_emb.evaluation.sts.read_sts_input())
         '''
-        sents_vec = preprocess_sents(sents)
+        sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
         encoder_input_data = sents_vec
@@ -224,7 +209,7 @@ class Seq2Seq(BaseAlgorithm):
         self.encoderModel.save_weights(str(self.encoder_weights_path))
 
     def transform(self, sents):
-        sents_vec = preprocess_sents(sents)
+        sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
         assert sents_vec.shape[0] == sents.shape[0] and sents_vec.shape[2] == GLOVE_DIM
 
@@ -235,7 +220,7 @@ class Seq2Seq(BaseAlgorithm):
         return embs
 
     def get_resources(self, task):
-        get_glove_resources(task, RAW_GLOVE_FILE_50)
+        self.word_embedding.get_resources(task)
 
 
 def improve_model(algorithm, tokenizer):
