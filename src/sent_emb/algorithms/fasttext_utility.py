@@ -9,8 +9,8 @@ from sent_emb.algorithms.unknown import UnknownVector, NoUnknown
 
 FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
 
-FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki.en').joinpath('wiki.en.vec')
-FASTTEXT_BIN = FASTTEXT_DIR.joinpath('wiki.en').joinpath('wiki.en.bin')
+FASTTEXT_FILE = FASTTEXT_DIR.joinpath('wiki.en.vec')
+FASTTEXT_BIN = FASTTEXT_DIR.joinpath('wiki.en.bin')
 FASTTEXT_CROPPED = FASTTEXT_DIR.joinpath('cropped.txt')
 FASTTEXT_UNKNOWN = FASTTEXT_DIR.joinpath('unknown_answers.txt')
 
