@@ -30,10 +30,6 @@ def all_statistics(tokenizer):
     for year, test_names in sorted(TEST_NAMES.items()):
         for test_name in test_names:
             input_path = get_sts_input_path(year, test_name)
-            all_sents = read_sts_input(input_path, tokenizer)
-
-            assert len(all_sents) % 2 == 0
-
-            sents_pairs = list(zip(*[all_sents[i::2] for i in range(0, 2)]))
+            sents_pairs = read_sts_input(input_path, tokenizer)
 
             test_data_statistics(sents_pairs, 'STS{}, {}'.format(year, test_name))

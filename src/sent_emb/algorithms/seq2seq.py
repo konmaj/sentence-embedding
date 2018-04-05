@@ -232,7 +232,11 @@ def improve_model(algorithm, tokenizer):
     algorithm.get_resources(STS(tokenizer))
 
     print('Reading training set...')
+
     sents = read_train_set(16, tokenizer)
+    sents = list(zip(*sents))  # TODO: pack into function
+    sents = sents[0] + sents[1]
+
     print('...done.')
 
     algorithm.improve_weights(sents)

@@ -43,6 +43,8 @@ class STS(DataSet):
             sts_words = set()
             for input_path in input_paths:
                 sents = read_sts_input(input_path, self.tokenizer)
+                sents = list(zip(*sents))  # TODO: pack into function
+                sents = sents[0] + sents[1]
                 for sent in sents:
                     for word in sent:
                         sts_words.add(word)
@@ -89,13 +91,15 @@ def get_sts_input_path(year, test_name, use_train_set=False):
     return sts_path.joinpath(dir_name, input_name)
 
 
-def get_sts_gs_path(year, test_name):
+def get_sts_gs_path(year, test_name, use_train_set=False):
     assert year in TEST_NAMES
+    assert not (use_train_set and year != 12)
 
     sts_path = get_sts_path(year)
+    dir_name = 'test-data' if not use_train_set else 'train-data'
     gs_name = 'STS.gs.{}.txt'.format(test_name)
 
-    return sts_path.joinpath('test-data', gs_name)
+    return sts_path.joinpath(dir_name, gs_name)
 
 
 def get_sts_output_path(year, test_name):
@@ -112,6 +116,13 @@ def get_cur_time_str():
 
 
 def tokens(tokenizer, sents):
+    """
+    Tokenizes each sentence in a list.
+
+    :param tokenizer: tokenizer to use
+    :param sents: list of sentences (strings) to tokenize
+    :return: list of tokenized sentences - each sentence is represented as a list of words
+    """
     guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
     con = ''
     for sent in sents:
@@ -128,13 +139,13 @@ def tokens(tokenizer, sents):
 
 def read_sts_input(file_path, tokenizer):
     """
-    Reads STS input file at given 'file_path'.
+    Reads STS input file at given `file_path`.
 
-    returns: numpy array of sentences
-        sentence: python list of words
+    returns: list of pairs of sentences
+        sentence: list of words
         word: string
-        TODO: unify return type - only numpy or only python lists.
     """
+
     sents = []
     with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -142,7 +153,38 @@ def read_sts_input(file_path, tokenizer):
             assert len(row) == 2 \
                 or len(row) == 4  # STS16 contains also source of each sentence
             sents.extend(row[:2])
-    return np.array(tokens(tokenizer, sents))
+
+    sents = tokens(tokenizer, sents)
+
+    return list(zip(sents[::2], sents[1::2]))
+
+
+def read_sts_gs(file_path):
+    """
+    Reads STS gold standard file at given 'file_path'.
+
+    :param file_path: Path to gold standard file
+    :return: list of gold standard scores (floats) for pairs of sentences
+        Missing scores are represented as `None` in the resulting list.
+    """
+    gs_score = []
+    with open(str(file_path), 'r') as gs_file:
+        for line in gs_file.readlines():
+            assert line[-1] == '\n'
+            gs_score.append(float(line[:-1]) if len(line) > 1 else None)
+    return gs_score
+
+
+def read_sts_input_with_gs(year, test_name, tokenizer, use_train_set=False):
+    input_path = get_sts_input_path(year, test_name, use_train_set=use_train_set)
+    sents_pairs = read_sts_input(input_path, tokenizer)
+
+    gs_path = get_sts_gs_path(year, test_name, use_train_set=use_train_set)
+    gold_standards = read_sts_gs(gs_path)
+
+    assert len(sents_pairs) == len(gold_standards)
+
+    return [(sent1, sent2, gs) for ((sent1, sent2), gs) in zip(sents_pairs, gold_standards)]
 
 
 def read_train_set(year, tokenizer):
@@ -153,24 +195,25 @@ def read_train_set(year, tokenizer):
     1) STS12 train-data
     2) Test data from STS from former years
 
-    returns: sequence of sentences from all training sets available for STS in given 'year'
-        type: consistent with concatenation of results of function 'read_sts_input'
+    :param year: two last digits of year of STS task (e.g. 12)
+    :param tokenizer: tokenizer to use while reading sentences
+    :return: list of tuples with training data available for STS in given `year`
+        tuple: (sentence1, sentence2, gold_standard)
+        sentence: list of words (strings)
     """
     # STS12 train-data...
-    train_inputs = []
+    train_data = []
     for test_name in STS12_TRAIN_NAMES:
-        input_path = get_sts_input_path(12, test_name, use_train_set=True)
-        train_inputs.append(read_sts_input(input_path, tokenizer))
+        train_data.extend(read_sts_input_with_gs(12, test_name, tokenizer, use_train_set=True))
 
     # test sets from STS before given 'year'
     for test_year, test_names_year in sorted(TEST_NAMES.items()):
         if test_year >= year:
             break
         for test_name in test_names_year:
-            input_path = get_sts_input_path(test_year, test_name, use_train_set=False)
-            train_inputs.append(read_sts_input(input_path, tokenizer))
+            train_data.extend(read_sts_input_with_gs(test_year, test_name, tokenizer, use_train_set=False))
 
-    return np.concatenate(tuple(train_inputs))
+    return train_data
 
 
 def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
@@ -183,6 +226,9 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     """
     # read test data
     sents = read_sts_input(input_path, tokenizer)
+    sents = [sent for s1, s2 in sents  # TODO: pack in a function
+             for sent in [s1, s2]]
+    sents = np.array(sents)
 
     # compute embeddings
     embs = algorithm.transform(sents)
@@ -233,6 +279,12 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
     print('Reading training set for', sts_name)
     train_sents = read_train_set(year, tokenizer)
+
+    # TODO: remove conversion
+    train_sents = list(zip(*train_sents))[:2]
+    train_sents = list(train_sents[0]) + list(train_sents[1])
+    train_sents = np.array(train_sents)
+
     if smoke_test:
         train_sents = train_sents[:10]
     print('numbers of sentences:', train_sents.shape[0])
