@@ -13,7 +13,7 @@ GLOVE_DIM = 300
 
 
 def parse_sents(sents, word_embedding, maxlen):
-    result = np.zeros((sents.shape[0], maxlen, GLOVE_DIM), dtype=np.float)
+    result = np.zeros((len(sents), maxlen, GLOVE_DIM), dtype=np.float)
 
     word_to_vec = word_embedding.embeddings(sents)
 

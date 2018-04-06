@@ -12,6 +12,7 @@ class Doc2Vec(BaseAlgorithm):
         self.min_count = min_count
         self.epochs = epochs
         self.n_threads = n_threads
+        self.model = None
 
     def get_resources(self, dataset):
         pass
@@ -34,8 +35,9 @@ class Doc2Vec(BaseAlgorithm):
         if self.model is None:
             raise RuntimeError('Doc2Vec: transform() was called before fit()')
 
-        n_sents = sents.shape[0]
+        n_sents = len(sents)
         emb_list = [self.model.infer_vector(sent) for sent in sents]
         result = np.concatenate(emb_list)
 
+        assert result.shape[0] % n_sents == 0
         return result.reshape((n_sents, result.shape[0] // n_sents))

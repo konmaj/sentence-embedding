@@ -212,7 +212,7 @@ class Seq2Seq(BaseAlgorithm):
     def transform(self, sents):
         sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
-        assert sents_vec.shape[0] == sents.shape[0] and sents_vec.shape[2] == GLOVE_DIM
+        assert sents_vec.shape[0] == len(sents) and sents_vec.shape[2] == GLOVE_DIM
 
         embs = self.encoderModel.predict(sents_vec)
 

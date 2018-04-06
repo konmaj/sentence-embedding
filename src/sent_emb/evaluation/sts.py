@@ -237,7 +237,6 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     # read test data
     sent_pairs = read_sts_input(input_path, tokenizer)
     sents = flatten_sent_pairs(sent_pairs)
-    sents = np.array(sents)  # TODO: remove conversion to numpy
 
     # compute embeddings
     embs = algorithm.transform(sents)
@@ -290,11 +289,10 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
     train_sents = read_train_set(year, tokenizer)
 
     train_sents = flatten_sent_pairs(train_sents)
-    train_sents = np.array(train_sents)  # TODO: remove numpy
 
     if smoke_test:
         train_sents = train_sents[:10]
-    print('numbers of sentences:', train_sents.shape[0])
+    print('numbers of sentences:', len(train_sents))
     print('Training started...')
     algorithm.fit(train_sents)
     print('... training completed.')
