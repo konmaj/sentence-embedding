@@ -41,13 +41,13 @@ def get_cur_time_str():
 
 
 def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
-    '''
+    """
     Runs given embedding algorithm.transform() method on a single STS task (without
     computing score).
 
     Writes output in format described in section Output Files of file
-    resources/datasets/STS16/data/README.txt
-    '''
+    resources/datasets/STS16/test-data/README.txt
+    """
     # read test data
     sent_pairs = read_sts_input(input_path, tokenizer)
     sents = flatten_sent_pairs(sent_pairs)
@@ -73,7 +73,7 @@ def get_grad_script_res(output):
 
 
 def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False):
-    '''
+    """
     Evaluates given embedding algorithm on STS inputs from given year.
 
     1) Trains given algorithm by calling algorithm.fit() method on train dataset
@@ -88,7 +88,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
     returns: list of "Pearson's r * 100" of each input
              (ordered as in TEST_NAMES[year]).
-    '''
+    """
     assert year in TEST_NAMES
     sts_name = 'STS{}'.format(year)
 
@@ -146,14 +146,14 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
 
 def eval_sts_all(algorithm, tokenizer):
-    '''
+    """
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
     Writes results in a new CSV file in LOG_PATH directory.
 
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
-    '''
+    """
     task = STS(tokenizer)
     algorithm.get_resources(task)
 

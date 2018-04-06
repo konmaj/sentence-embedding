@@ -80,13 +80,13 @@ def get_sts_output_path(year, test_name):
 
 
 def tokens(tokenizer, sents):
-    '''
+    """
     Tokenizes each sentence in a list.
 
     :param tokenizer: tokenizer to use
-    :param sents: list of sentences (strings) to tokenize
+    :param sents: list of sentences (list of strings) to tokenize
     :return: list of tokenized sentences - each sentence is represented as a list of words
-    '''
+    """
     guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
     con = ''
     for sent in sents:
@@ -102,11 +102,11 @@ def tokens(tokenizer, sents):
 
 
 def read_sts_input(file_path, tokenizer):
-    '''
+    """
     Reads STS input file at given `file_path`.
 
     returns: list of SentPairs
-    '''
+    """
     sents = []
     with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -121,13 +121,14 @@ def read_sts_input(file_path, tokenizer):
 
 
 def read_sts_gs(file_path):
-    '''
-    Reads STS gold standard file at given 'file_path'.
+    """
+    Reads STS gold standard file at given `file_path`.
 
     :param file_path: Path to gold standard file
     :return: list of gold standard scores (floats) for pairs of sentences
-        Missing scores are represented as `None` in the resulting list.
-    '''
+        Missing scores are represented as `None` in the resulting list
+        (some scores in STS15 and STS16 are missing).
+    """
     gs_score = []
     with open(str(file_path), 'r') as gs_file:
         for line in gs_file.readlines():
@@ -137,6 +138,15 @@ def read_sts_gs(file_path):
 
 
 def read_sts_input_with_gs(year, test_name, tokenizer, use_train_set=False):
+    """
+    Reads STS input with gold standards for given test and year.
+
+    :param year: two last digits of year of STS task (e.g. 12)
+    :param test_name: string as in `TEST_NAMES` or `STS12_TRAIN_NAMES`
+    :param tokenizer: tokenizer to use while reading sentences
+    :param use_train_set: whether to search in `train-data` directory; otherwise in `test-data`.
+    :return: list of SentPairWithGs objects
+    """
     input_path = get_sts_input_path(year, test_name, use_train_set=use_train_set)
     sents_pairs = read_sts_input(input_path, tokenizer)
 
@@ -147,21 +157,18 @@ def read_sts_input_with_gs(year, test_name, tokenizer, use_train_set=False):
 
 
 def read_train_set(year, tokenizer):
-    '''
+    """
     Reads training set available for STS in given 'year'.
 
     For each year training set consists of:
     1) STS12 train-data
     2) Test data from STS from former years
 
-    returns: sequence of sentences from all training sets available for STS in given 'year'
-        type: consistent with concatenation of results of function 'read_sts_input'
     :param year: two last digits of year of STS task (e.g. 12)
     :param tokenizer: tokenizer to use while reading sentences
-    :return: list of tuples with training data available for STS in given `year`
-        tuple: (sentence1, sentence2, gold_standard)
-        sentence: list of words (strings)
-    '''
+    :return: list of SentPairWithGs objects from all training sets available for STS
+             in given `year`
+    """
     # STS12 train-data...
     train_data = []
     for test_name in STS12_TRAIN_NAMES:
@@ -174,5 +181,4 @@ def read_train_set(year, tokenizer):
         for test_name in test_names_year:
             train_data.extend(read_sts_input_with_gs(test_year, test_name, tokenizer,
                                                      use_train_set=False))
-
     return train_data

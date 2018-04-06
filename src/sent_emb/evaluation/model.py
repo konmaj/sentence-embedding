@@ -18,7 +18,7 @@ class DataSet(ABC):
     @abstractmethod
     def tokenizer_name(self):
         """
-        :return: Name of the tokenizer (may be used eg. for filenames)
+        :return: Name of the tokenizer (may be used e.g. for filenames)
         """
         pass
 
@@ -40,7 +40,7 @@ class WordEmbedding(ABC):
         """
         Must be called once before getting embeddings,
         downloads or prepares needed resources
-        :param dataset: DataSet class, for  which we prepare resources
+        :param dataset: DataSet class, for which we prepare resources
         """
         pass
 
@@ -55,8 +55,19 @@ class WordEmbedding(ABC):
 
 
 SentPair = namedtuple('SentPair', ['sent1', 'sent2'])
+"""
+Class, which represents pair of tokenized sentences from STS task.
+Each sentence is intended to be a list of words (list of strings), but the class does not control
+type of sentences.
+"""
 
 SentPairWithGs = namedtuple('SentPairWithGs', SentPair._fields + ('gs',))
+"""
+Class, which represents pair of tokenized sentences from STS task with corresponding gold standard
+similarity score.
+Gold standard is intended to be `float` in range [0; 5] or None, when missing. The class does not
+control these conditions.
+"""
 
 
 class BaseAlgorithm(ABC):
@@ -65,14 +76,14 @@ class BaseAlgorithm(ABC):
 
     Note - following call:
         SubclassName()
-    should yield valid (but maybe not optimally tuned) object of SubclassName
-    (for the purpose of smoketest).
+    should construct valid (but maybe not optimally tuned) object of SubclassName
+    (for the purpose of smoke test).
     """
 
     @abstractmethod
     def get_resources(self, task):
         """
-        Called once before all evaluations. Prepares external resources
+        Should be called once before all evaluations. Prepares external resources
         (downloads data, crops files for better performace).
         :param task: Task object
         """
@@ -82,16 +93,16 @@ class BaseAlgorithm(ABC):
     @abstractmethod
     def fit(self, sents):
         """
-        Prepares 'self' object on training data.
+        Prepares `self` object on training data.
 
-        Should be called before first call to transform() method.
+        Should be called before the first call to transform() method.
 
         Every call to fit() method has to:
         1) clear the state of algorithm,
         2) train model from scratch using only 'sents' passed as an argument
            (data from previous calls of fit() has to be ignored).
 
-        sents: sequence of sentences as in sent_emb.evaluation.sts.read_sts_input() function's result
+        sents: list of sentences in training set - each sentence is a list of words (list of strings).
         returns: None
         """
         pass
@@ -101,18 +112,33 @@ class BaseAlgorithm(ABC):
         """
         Computes embeddings of given sentences.
 
-        sents: sequence of sentences as in sent_emb.evaluation.sts.read_sts_input() function's result
-        returns: numpy 2-D array of sentence embeddings
+        sents: list of sentences to compute embeddings (in the same format as in `fit` method)
+        returns: numpy 2-D array of sentence embeddings (second dimension may be arbitrary)
         """
         pass
 
 
-# Auxiliary functions for operating on SentPair and SentPairWithGs lists
+# Auxiliary functions for operating on lists of SentPair or SentPairWithGs
 
 def zip_sent_pairs_with_gs(sent_pairs, gold_standards):
+    """
+    Zips list of SentPairs with list of corresponding gold standard scores.
+
+    :param sent_pairs: list of SentPairs objects
+    :param gold_standards: list of gold standard scores
+    :return: list of SentPairWithGs objects
+    """
     assert len(sent_pairs) == len(gold_standards)
+
     return [SentPairWithGs(*pair, gs=gs) for pair, gs in zip(sent_pairs, gold_standards)]
 
 
 def flatten_sent_pairs(sent_pairs):
+    """
+    Converts list of SentPair or SentPairWithGs to list of sentences
+    (sentences from single pair are adjacent in resulting list).
+
+    :param sent_pairs: list of SentPair or SentPairWithGs objects
+    :return: list of list of strings
+    """
     return [sent for sent_pair in sent_pairs for sent in [sent_pair.sent1, sent_pair.sent2]]

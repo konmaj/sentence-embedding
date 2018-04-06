@@ -24,17 +24,17 @@ WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
 
 
 def replace_with_embs(sents, word_embedding):
-    '''TODO: update docstring
+    """
     Converts sentences to lists of their word embeddings.
 
-    sents: the same as in Seq2Seq.improve_weights() method
+    sents: list of tokenized sentences - each sentence is a list of strings
 
     unknown_vec: object of sent_emb.algorithms.unknown.Unknown abstract class
 
     returns: list of sentences
         sentence: list of embeddings
         embedding: list of floats
-    '''
+    """
 
     word_vec_dict = word_embedding.embeddings(sents)
 
@@ -49,9 +49,9 @@ def replace_with_embs(sents, word_embedding):
 
 
 def get_random_subsequence(sequence, result_size):
-    '''
+    """
     Computes random subsequence of size 'result_size' of python list 'sequence'.
-    '''
+    """
     seq_len = len(sequence)
     assert result_size <= seq_len
 
@@ -61,7 +61,7 @@ def get_random_subsequence(sequence, result_size):
 
 
 def align_sents(sents_vec, padding_vec, cut_rate=0.8):
-    '''
+    """
     Fits each sentence to has equal number of words (dependent on 'cut_rate').
 
     sents_vec: list of sentences of vectorized words
@@ -77,7 +77,7 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
 
     returns: list of sentences (in format as 'sents_vec')
              each sentence consists of MAX_ENCODER_WORDS words.
-    '''
+    """
     assert 0 <= cut_rate <= 1
 
     sent_lengths = sorted([len(sent) for sent in sents_vec])
@@ -94,13 +94,13 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
 
 
 def preprocess_sents(sents, word_embedding):
-    '''
+    """
     Prepares sentences to be put into Seq2Seq neural net.
 
-    sents: the same as in Seq2Seq.improve_weights() method
+    sents: list of tokenized sentences - each sentence is a list of strings
 
     returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
-    '''
+    """
 
     sents_vec = replace_with_embs(sents, word_embedding)
 
@@ -112,14 +112,14 @@ def preprocess_sents(sents, word_embedding):
 
 class Seq2Seq(BaseAlgorithm):
     def __init__(self, name='s2s_gru_sts1215_g50', force_load=True):
-        '''
+        """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
         name: short details of model - it's used as a prefix of name of file with saved model.
 
         force_load: if True and there aren't proper files with saved model, then __init__
                     print error message and terminates execution of script.
-        '''
+        """
 
         self.name = name
         self.all_weights_path = WEIGHTS_PATH.joinpath('{}.h5'.format(name))
@@ -178,18 +178,17 @@ class Seq2Seq(BaseAlgorithm):
                 print('Weights not found - model will be created from scratch.')
 
     def fit(self, sents):
-        '''
+        """
         We don't want to train model during evaluation - it would take too much time.
-        '''
+        """
         pass
 
     def improve_weights(self, sents, epochs=EPOCHS):
-        '''
+        """
         Real training of the model.
 
-        sents: numpy array of tokenized sentences
-               (shaped as in sent_emb.evaluation.sts.read_sts_input())
-        '''
+        sents: list of tokenized sentences - each sentence is a list of strings
+        """
         sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
@@ -226,9 +225,9 @@ class Seq2Seq(BaseAlgorithm):
 
 
 def improve_model(algorithm, tokenizer):
-    '''
+    """
     Runs training of Seq2Seq 'algorithm' model on STS16 traing set.
-    '''
+    """
 
     algorithm.get_resources(STS(tokenizer))
 
