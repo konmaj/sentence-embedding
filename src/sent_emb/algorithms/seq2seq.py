@@ -10,8 +10,9 @@ import tensorflow as tf
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.path_utility import RESOURCES_DIR
 
-from sent_emb.evaluation.model import BaseAlgorithm
-from sent_emb.evaluation.sts import STS, read_train_set, flatten_sent_pairs
+from sent_emb.evaluation.model import BaseAlgorithm, flatten_sent_pairs
+from sent_emb.evaluation.sts_read import STS, read_train_set
+
 
 BATCH_SIZE = 2**8  # Batch size for training.
 EPOCHS = 10
@@ -232,9 +233,7 @@ def improve_model(algorithm, tokenizer):
     algorithm.get_resources(STS(tokenizer))
 
     print('Reading training set...')
-
     sents = flatten_sent_pairs(read_train_set(16, tokenizer))
-
     print('...done.')
 
     algorithm.improve_weights(sents)

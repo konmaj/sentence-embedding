@@ -1,5 +1,5 @@
 from sent_emb.statistics.test_data import LengthStatistic, IntersectionStatistic, LengthDifferenceStatistic, GloveCoverStatistic
-from sent_emb.evaluation.sts import get_sts_input_path, read_sts_input, TEST_NAMES
+from sent_emb.evaluation.sts_read import TEST_NAMES, get_sts_input_path, read_sts_input
 
 import numpy as np
 

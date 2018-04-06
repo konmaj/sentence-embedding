@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import namedtuple
 
 
 class DataSet(ABC):
@@ -53,6 +54,11 @@ class WordEmbedding(ABC):
         pass
 
 
+SentPair = namedtuple('SentPair', ['sent1', 'sent2'])
+
+SentPairWithGs = namedtuple('SentPairWithGs', SentPair._fields + ('gs',))
+
+
 class BaseAlgorithm(ABC):
     """
     Base abstract class, which represents algorithms, which compute sentence embeddings.
@@ -99,3 +105,14 @@ class BaseAlgorithm(ABC):
         returns: numpy 2-D array of sentence embeddings
         """
         pass
+
+
+# Auxiliary functions for operating on SentPair and SentPairWithGs lists
+
+def zip_sent_pairs_with_gs(sent_pairs, gold_standards):
+    assert len(sent_pairs) == len(gold_standards)
+    return [SentPairWithGs(*pair, gs=gs) for pair, gs in zip(sent_pairs, gold_standards)]
+
+
+def flatten_sent_pairs(sent_pairs):
+    return [sent for sent_pair in sent_pairs for sent in [sent_pair.sent1, sent_pair.sent2]]
