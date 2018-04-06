@@ -3,7 +3,7 @@ from shutil import copyfile
 
 from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR
 from sent_emb.downloader.downloader import zip_download_and_extract
-from sent_emb.evaluation.model import WordEmbedding
+from sent_emb.evaluation.model import WordEmbedding, DataSet
 from sent_emb.algorithms.unknown import UnknownVector
 
 GLOVE_DIR = EMBEDDINGS_DIR.joinpath('glove')
@@ -21,49 +21,56 @@ def get_zip_file(glove_file):
 
 
 def get_glove_file(glove_file, name):
-    '''
+    """
     :param glove_file: name of the glove file from which we cropped
     :param name: name of the tokenizer
     :return: name of the cropped glove file for the given tokenizer
-    '''
+    """
     return GLOVE_DIR.joinpath(glove_file.stem + '_cropped_' + name + '.txt')
 
 
-def read_file(file_path, f, should_count=False):
-    '''
+def read_file(file_path, f, should_count=False, discard=0):
+    """
     :param file_path: Name of the glove file, normally just use GLOVE_FILE
-    :param f(word, vec, raw_line): callback for reading the file
-        :param vec: np.array of size GLOVE_DIM with word embedding
+    :param f: f(word, vec, raw_line) callback for reading the file
+        param vec: np.array of size GLOVE_DIM with word embedding
     :param should_count: whether we should print diagnostic info every 100k lines
-    '''
+    :param discard: how many first lines should be ignored
+        it's usually 0, but sometimes there are some meta data in the first line (eg. FastText)
+    """
     line_count = 0
     glove_file = open(file_path)
-    for raw_line in glove_file:
-        line = raw_line[:-1].split(' ')
-        word = line[0]
-        vec = np.array(line[1:], dtype=np.float)
-        f(word, vec, raw_line)
-        if should_count:
-            line_count += 1
-            if line_count % (100 * 1000) == 0:
-                print('  line_count: ', line_count)
+    for idx, raw_line in enumerate(glove_file):
+        if idx >= discard:
+            line = raw_line.split(' ')
+            word = line[0]
+            data = line[1:]
+            # dealing with trailing spaces in files
+            while data[-1] == "" or data[-1] == '\n':
+                data = data[:-1]
+            vec = np.array(data, dtype=np.float)
+            f(word, vec, raw_line)
+            if should_count:
+                line_count += 1
+                if line_count % (100 * 1000) == 0:
+                    print('  line_count: ', line_count)
 
 
-def create_glove_subset(task, glove_file, name):
-    '''
+def create_glove_subset(dataset, glove_file, name):
+    """
     Checks whether cropped GloVe file exists and
     crops GloVe file to contain only words used in task (if
-    :param evaluation: evaluation object for this task
+    :param dataset: dataset data object
     :param glove_file: glove_file to be cropped
     :param name: name to be append to the glove_file (usually tokenizer name)
-    '''
+    """
     if get_glove_file(glove_file, name).exists():
         print('Cropped GloVe file already exists')
     else:
         file = open(get_glove_file(glove_file, name), 'w')
 
         def crop(word, _, line):
-            if word in task.word_set:
+            if word in dataset.word_set:
                 file.write(line)
 
         print('Cropping GloVe set...')
@@ -74,7 +81,7 @@ def create_glove_subset(task, glove_file, name):
 
 
 def download_glove(glove_file):
-    BASE_URL = "http://nlp.stanford.edu/data/"
+    base_url = "http://nlp.stanford.edu/data/"
 
     zip_file = get_zip_file(glove_file)
     print("Check GloVe data...")
@@ -82,13 +89,14 @@ def download_glove(glove_file):
         print("... Embeddings", glove_file, "found")
     else:
         print("Downloading", glove_file, "...")
-        zip_download_and_extract(BASE_URL + zip_file, GLOVE_DIR)
+        zip_download_and_extract(base_url + zip_file, GLOVE_DIR)
         print("...", glove_file, "downloaded")
 
 
-def get_glove_resources(task, glove_file):
+def get_glove_resources(dataset, glove_file):
+    assert isinstance(dataset, DataSet)
     download_glove(glove_file)
-    create_glove_subset(task, glove_file, task.tokenizer_name())
+    create_glove_subset(dataset, glove_file, dataset.tokenizer_name())
 
 
 class GloVe(WordEmbedding):
@@ -97,8 +105,8 @@ class GloVe(WordEmbedding):
         self.glove_file = glove_file
         self.dim = dim
 
-    def get_resources(self, task):
-        get_glove_resources(task, self.glove_file)
+    def get_resources(self, dataset):
+        get_glove_resources(dataset, self.glove_file)
 
     def embeddings(self, sents):
         words = set()
@@ -108,9 +116,9 @@ class GloVe(WordEmbedding):
 
         result = {}
 
-        def process(word, vec, _):
-            self.unknown.see(word, vec)
-            result[word] = vec
+        def process(w, vec, _):
+            self.unknown.see(w, vec)
+            result[w] = vec
 
         read_file(GLOVE_FILE, process)
 

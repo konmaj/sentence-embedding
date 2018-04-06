@@ -51,7 +51,7 @@ class UnknownRandom(Unknown):
 
 
 class NoUnknown(Unknown):
-    def see(self, _):
+    def see(self, _, _vec):
         pass
 
     def get(self, _):

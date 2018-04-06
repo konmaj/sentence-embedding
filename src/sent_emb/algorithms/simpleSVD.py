@@ -18,14 +18,14 @@ WORD_FREQUENCY_FILE = OTHER_RESOURCES_DIR.joinpath('word_frequency', 'all.num.gz
 
 def get_word_frequency():
     print('Checking for word frequency:')
-    URL = 'http://www.kilgarriff.co.uk/BNClists/all.num.gz'
+    url = 'http://www.kilgarriff.co.uk/BNClists/all.num.gz'
 
     path = OTHER_RESOURCES_DIR
     mkdir_if_not_exist(path)
     word_frequency_path = path.joinpath('word_frequency')
     if mkdir_if_not_exist(word_frequency_path):
         print('Word frequency not found')
-        urlretrieve(URL, word_frequency_path.joinpath(Path(URL).name))
+        urlretrieve(url, word_frequency_path.joinpath(Path(url).name))
     else:
         print('Found word frequency')
 
@@ -33,10 +33,10 @@ def get_word_frequency():
 class Prob(ABC):
     @abstractmethod
     def transform(self, sents):
-        '''
+        """
             :param sents: sentences in the task on which Prob class should compute probability
             :return: self
-        '''
+        """
         pass
 
     @abstractmethod
@@ -96,7 +96,8 @@ class ExternalProb(Prob):
         else:
             return self.simple.get(word)
 
-    def get_resources(self):
+    @staticmethod
+    def get_resources():
         get_word_frequency()
 
 
@@ -130,16 +131,17 @@ class ExternalProbFocusUnknown(Prob):
             else:
                 return self.simple.count[word] / self.all
 
-    def get_resources(self):
+    @staticmethod
+    def get_resources():
         get_word_frequency()
 
 
 class SimpleSVD(BaseAlgorithm):
     def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProb()):
-        '''
+        """
             param_a: parameter of scale for probabilities
             prob: object of class Prob, which provides probability of words in corpus
-        '''
+        """
         self.word_embeddings = word_embeddings
         self.param_a = param_a
         self.prob = prob

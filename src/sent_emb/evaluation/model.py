@@ -1,44 +1,55 @@
 from abc import ABC, abstractmethod
 
 
-class Task(ABC):
-    '''
-    Task class, which represents all data Algorithm should know beforehand about it.
-    '''
+class DataSet(ABC):
+    """
+    DataSet class, which represents all data Algorithm should know beforehand about it.
+    """
 
     @abstractmethod
     def word_set(self):
+        """
+        Should be lazy if computation may be long
+        :return: Set of all words used in sentences in this DataSet
+        """
         pass
 
+    @abstractmethod
     def tokenizer_name(self):
+        """
+        :return: Name of the tokenizer (may be used eg. for filenames)
+        """
         pass
 
 
 class WordEmbedding(ABC):
-    '''
+    """
     Abstract class, which represents embeddings for words
-    '''
+    """
 
+    @abstractmethod
     def get_dim(self):
-        '''
-        :return: size of embeddings
-        '''
+        """
+        :return: size of the vector of the word embedding
+        """
         pass
 
-
-    def get_resources(self, task):
-        '''
-        Called once downloads or prepares needed resources
-        :param task: Task class
-        '''
+    @abstractmethod
+    def get_resources(self, dataset):
+        """
+        Must be called once before getting embeddings,
+        downloads or prepares needed resources
+        :param dataset: DataSet class, for  which we prepare resources
+        """
         pass
 
+    @abstractmethod
     def embeddings(self, sents):
-        '''
+        """"
         Main function, which computes vectors for all words used in task
         :param sents: list of sentences
         :return: dictionary of embeddings for words used in sentences
-        '''
+        """
         pass
 
 

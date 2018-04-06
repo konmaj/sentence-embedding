@@ -7,7 +7,7 @@ import numpy as np
 from sent_emb.algorithms.glove_utility import create_glove_subset, get_glove_file, GLOVE_FILE
 from sent_emb.algorithms.path_utility import RESOURCES_DIR, DATASETS_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist
-from sent_emb.evaluation.model import BaseAlgorithm, Task
+from sent_emb.evaluation.model import BaseAlgorithm, DataSet
 from sent_emb.algorithms.fasttext_utility import fasttext_preprocessing
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
@@ -27,7 +27,7 @@ LOG_PATH = RESOURCES_DIR.joinpath('log')
 GRADING_SCRIPT_PATH = DATASETS_DIR.joinpath('STS16', 'test-data', 'correlation-noconfidence.pl')
 
 
-class STS(Task):
+class STS(DataSet):
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
@@ -64,7 +64,7 @@ def compute_similarity(emb_pairs):
 
     for pair in emb_pairs:
         sim = cos(pair[0], pair[1])
-        result.append((sim + 1) * 5 / 2) # scale interval from [-1; 1] to [0; 5]
+        result.append((sim + 1) * 5 / 2)  # scale interval from [-1; 1] to [0; 5]
 
     return np.array(result)
 
@@ -123,26 +123,26 @@ def tokens(tokenizer, sents):
 
 
 def read_sts_input(file_path, tokenizer):
-    '''
+    """
     Reads STS input file at given 'file_path'.
 
     returns: numpy array of sentences
         sentence: python list of words
         word: string
         TODO: unify return type - only numpy or only python lists.
-    '''
+    """
     sents = []
     with open(str(file_path), 'r') as test_file:
         test_reader = csv.reader(test_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         for row in test_reader:
             assert len(row) == 2 \
-                or len(row) == 4 # STS16 contains also source of each sentence
+                or len(row) == 4  # STS16 contains also source of each sentence
             sents.extend(row[:2])
     return np.array(tokens(tokenizer, sents))
 
 
 def read_train_set(year, tokenizer):
-    '''
+    """
     Reads training set available for STS in given 'year'.
 
     For each year training set consists of:
@@ -151,7 +151,7 @@ def read_train_set(year, tokenizer):
 
     returns: sequence of sentences from all training sets available for STS in given 'year'
         type: consistent with concatenation of results of function 'read_sts_input'
-    '''
+    """
     # STS12 train-data...
     train_inputs = []
     for test_name in STS12_TRAIN_NAMES:
@@ -170,13 +170,13 @@ def read_train_set(year, tokenizer):
 
 
 def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
-    '''
+    """
     Runs given embedding algorithm.transform() method on a single STS task (without
     computing score).
 
     Writes output in format described in section Output Files of file
     resources/datasets/STS16/data/README.txt
-    '''
+    """
     # read test data
     sents = read_sts_input(input_path, tokenizer)
 
@@ -197,11 +197,11 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
 def get_grad_script_res(output):
     res = re.search(r'^Pearson: (-?\d\.\d{5})$', output)
     assert res is not None
-    return float(res.groups()[0]) # throws exception in case of wrong conversion
+    return float(res.groups()[0])  # throws exception in case of wrong conversion
 
 
 def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False):
-    '''
+    """
     Evaluates given embedding algorithm on STS inputs from given year.
 
     1) Trains given algorithm by calling algorithm.fit() method on train dataset
@@ -216,11 +216,16 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
     returns: list of "Pearson's r * 100" of each input
              (ordered as in TEST_NAMES[year]).
-    '''
+    """
     assert year in TEST_NAMES
     sts_name = 'STS{}'.format(year)
 
     assert isinstance(algorithm, BaseAlgorithm)
+
+    if smoke_test:
+        # Get resources, since it's smoke test and it hadn't been downloaded
+        dataset = STS(tokenizer)
+        algorithm.get_resources(dataset)
 
     print('Reading training set for', sts_name)
     train_sents = read_train_set(year, tokenizer)
@@ -271,16 +276,16 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
 
 def eval_sts_all(algorithm, tokenizer):
-    '''
+    """
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
     Writes results in a new CSV file in LOG_PATH directory.
 
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
-    '''
-    task = STS(tokenizer)
-    algorithm.get_resources(task)
+    """
+    dataset = STS(tokenizer)
+    algorithm.get_resources(dataset)
 
     year_names = []
     test_names = []

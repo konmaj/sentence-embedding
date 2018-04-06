@@ -13,7 +13,7 @@ class Doc2Vec(BaseAlgorithm):
         self.epochs = epochs
         self.n_threads = n_threads
 
-    def get_resources(self, task):
+    def get_resources(self, dataset):
         pass
 
     def fit(self, sents):

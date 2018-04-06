@@ -2,7 +2,7 @@ from abc import abstractmethod
 import nltk
 
 
-class Preprocessing():
+class Preprocessing:
     @abstractmethod
     def tokenize(self, sent):
         pass

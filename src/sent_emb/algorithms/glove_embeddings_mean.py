@@ -6,8 +6,8 @@ from sent_emb.algorithms.glove_utility import GloVe
 
 
 class WordVectorsMean(BaseAlgorithm):
-    def get_resources(self, task):
-        self.word_embeddings.get_resources(task)
+    def get_resources(self, dataset):
+        self.word_embeddings.get_resources(dataset)
 
     def fit(self, sents):
         pass
@@ -31,5 +31,3 @@ class WordVectorsMean(BaseAlgorithm):
 class GloveMean(WordVectorsMean):
     def __init__(self, unknown=UnknownVector(300)):
         self.word_embeddings = GloVe(unknown)
-
-
