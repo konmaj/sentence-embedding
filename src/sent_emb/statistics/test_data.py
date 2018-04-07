@@ -1,11 +1,11 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 from sent_emb.algorithms.glove_utility import GLOVE_FILE, read_file
 
 
-class TestDataStatistic:
+class TestDataStatistic(ABC):
     def __init__(self, agg_func):
         self.results = []
         self.agg_func = agg_func

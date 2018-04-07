@@ -1,8 +1,8 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import nltk
 
 
-class Preprocessing:
+class Preprocessing(ABC):
     @abstractmethod
     def tokenize(self, sent):
         pass
