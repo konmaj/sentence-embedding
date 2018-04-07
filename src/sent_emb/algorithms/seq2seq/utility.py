@@ -3,14 +3,14 @@ from abc import abstractmethod
 import keras
 import tensorflow as tf
 
-from sent_emb.algorithms.path_utility import RESOURCES_DIR
+from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sents
 
 from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.evaluation.sts_read import STS, read_train_set
 
 
-WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
+WEIGHTS_PATH = OTHER_RESOURCES_DIR.joinpath('seq2seq', 'weights')
 
 
 def get_weights_paths(name):
@@ -23,8 +23,7 @@ def load_model_weights(name, complete_model, encoder_model, force_load=True):
 
     # Try to load saved model from disk.
     if all_weights_path.exists() and encoder_weights_path.exists():
-        print('Loading weights from files:\n{}\n{}'.format(str(all_weights_path),
-                                                           str(encoder_weights_path)))
+        print('Loading weights from files:\n{}\n{}'.format(all_weights_path, encoder_weights_path))
         complete_model.load_weights(str(all_weights_path))
         encoder_model.load_weights(str(encoder_weights_path))
     else:
@@ -37,7 +36,7 @@ def load_model_weights(name, complete_model, encoder_model, force_load=True):
             print(error_msg)
             assert False
         else:
-            print('Weights not found - algorithm will start with not trained models.')
+            print('Weights not found - algorithm will start with not trained model.')
 
 
 def save_model_weights(name, complete_model, encoder_model):
@@ -47,6 +46,8 @@ def save_model_weights(name, complete_model, encoder_model):
 
     complete_model.save_weights(str(all_weights_path))
     encoder_model.save_weights(str(encoder_weights_path))
+
+    print('Weights are saved in files:\n{}\n{}'.format(all_weights_path, encoder_weights_path))
 
 
 def use_gpu_if_present():

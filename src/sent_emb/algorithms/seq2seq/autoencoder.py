@@ -9,7 +9,7 @@ from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, sa
 
 
 BATCH_SIZE = 2**8  # Batch size for training.
-EPOCHS = 10
+EPOCHS = 1
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
@@ -53,7 +53,7 @@ class Autoencoder(Seq2Seq):
     This algorithm uses autoencoding neural net based on seq2seq architecture.
     """
 
-    def __init__(self, name='s2s_gru_sts1215_g50', force_load=True):
+    def __init__(self, name='s2s_gru_g50_sts1215', force_load=True):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -68,7 +68,9 @@ class Autoencoder(Seq2Seq):
         self.force_load = force_load
 
         self.complete_model, self.encoder_model = \
-            prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM)
+            prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM,
+                           force_load=force_load)
+
         self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
 
         self._check_members_presence()

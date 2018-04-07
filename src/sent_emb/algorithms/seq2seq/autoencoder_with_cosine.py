@@ -10,7 +10,7 @@ from sent_emb.evaluation.model import get_gold_standards
 
 
 BATCH_SIZE = 2 ** 8  # Batch size for training.
-EPOCHS = 10
+EPOCHS = 1
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
@@ -69,7 +69,7 @@ class AutoencoderWithCosine(Seq2Seq):
     of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_gru_sts1215_g50_tmp', force_load=True):
+    def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
