@@ -1,114 +1,80 @@
-import numpy as np
-import math
 from abc import abstractmethod
 
-from sent_emb.algorithms.path_utility import RESOURCES_DIR
+import keras
+import tensorflow as tf
 
-from sent_emb.evaluation.model import BaseAlgorithm, flatten_sent_pairs
+from sent_emb.algorithms.path_utility import RESOURCES_DIR
+from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sents
+
+from sent_emb.evaluation.model import BaseAlgorithm
 from sent_emb.evaluation.sts_read import STS, read_train_set
 
 
 WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
 
 
-def replace_with_embs(sents, word_embedding):
-    """
-    Converts sentences to lists of their word embeddings.
-
-    sents: list of tokenized sentences - each sentence is a list of strings
-
-    unknown_vec: object of sent_emb.algorithms.unknown.Unknown abstract class
-
-    returns: list of sentences
-        sentence: list of embeddings
-        embedding: list of floats
-    """
-
-    word_vec_dict = word_embedding.embeddings(sents)
-
-    sents_vec = []
-    for sent in sents:
-        cur_sent = []
-        for word in sent:
-            cur_sent.append(word_vec_dict[word])
-        sents_vec.append(cur_sent)
-
-    return sents_vec
+def get_weights_paths(name):
+    return (WEIGHTS_PATH.joinpath('{}.h5'.format(name)),
+            WEIGHTS_PATH.joinpath('{}_enc.h5'.format(name)))
 
 
-def get_random_subsequence(sequence, result_size):
-    """
-    Computes random subsequence of size 'result_size' of python list 'sequence'.
-    """
-    seq_len = len(sequence)
-    assert result_size <= seq_len
+def load_model_weights(name, complete_model, encoder_model, force_load=True):
+    all_weights_path, encoder_weights_path = get_weights_paths(name)
 
-    selected_indices = np.sort(np.random.permutation(seq_len)[: result_size])
-
-    return [sequence[ind] for ind in np.nditer(selected_indices)]
-
-
-def align_sents(sents_vec, padding_vec, cut_rate=0.8):
-    """
-    Fits each sentence to has equal number of words (dependent on 'cut_rate').
-
-    sents_vec: list of sentences of vectorized words
-               (see return type of replace_with_embs() function)
-
-    padding_vec: np.array of type np.float and length GLOVE_DIM
-                 is used when there is not enough words in the sentence.
-
-    cut_rate: coefficient of [0; 1] interval
-              Target number of words per sentence (num_encoder_words) is set to be the minimal
-              integer such that at least 'cut_rate' fraction of original sentences are of length
-              less or equal 'num_encoder_words'.
-
-    returns: list of sentences (in format as 'sents_vec')
-             each sentence consists of MAX_ENCODER_WORDS words.
-    """
-    assert 0 <= cut_rate <= 1
-
-    sent_lengths = sorted([len(sent) for sent in sents_vec])
-    num_encoder_words = sent_lengths[int(math.ceil(cut_rate * len(sent_lengths)))]
-
-    for i in range(len(sents_vec)):
-        if len(sents_vec[i]) <= num_encoder_words:
-            sents_vec[i].extend([padding_vec for _ in range(num_encoder_words - len(sents_vec[i]))])
+    # Try to load saved model from disk.
+    if all_weights_path.exists() and encoder_weights_path.exists():
+        print('Loading weights from files:\n{}\n{}'.format(str(all_weights_path),
+                                                           str(encoder_weights_path)))
+        complete_model.load_weights(str(all_weights_path))
+        encoder_model.load_weights(str(encoder_weights_path))
+    else:
+        if force_load:
+            error_msg = \
+                '''ERROR: Weights not found and force_load==True
+                       If you really want to create new files with weights, please add
+                       --alg-kwargs='{"force_load": false}' as a param to the script.
+                '''
+            print(error_msg)
+            assert False
         else:
-            sents_vec[i] = get_random_subsequence(sents_vec[i], num_encoder_words)
-        assert len(sents_vec[i]) == num_encoder_words
-
-    return sents_vec
+            print('Weights not found - algorithm will start with not trained models.')
 
 
-def preprocess_sents(sents, word_embedding):
-    """
-    Prepares sentences to be put into Seq2Seq neural net.
+def save_model_weights(name, complete_model, encoder_model):
+    WEIGHTS_PATH.mkdir(parents=True, exist_ok=True)
 
-    sents: list of tokenized sentences - each sentence is a list of strings
+    all_weights_path, encoder_weights_path = get_weights_paths(name)
 
-    returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
-    """
-    sents_vec = replace_with_embs(sents, word_embedding)
-
-    padding_vec = np.zeros(word_embedding.get_dim(), dtype=np.float)
-    aligned_sents = align_sents(sents_vec, padding_vec)
-
-    return np.array(aligned_sents, dtype=np.float)
+    complete_model.save_weights(str(all_weights_path))
+    encoder_model.save_weights(str(encoder_weights_path))
 
 
-def preprocess_sent_pairs(sent_pairs, word_embedding):
-    sents = flatten_sent_pairs(sent_pairs)
-    sents = preprocess_sents(sents, word_embedding)
-
-    first_sents = sents[0::2]
-    second_sents = sents[1::2]
-
-    assert first_sents.shape == second_sents.shape
-    return first_sents, second_sents
+def use_gpu_if_present():
+    config = tf.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+    sess = tf.Session(config=config)
+    keras.backend.set_session(sess)
 
 
 class Seq2Seq(BaseAlgorithm):
+    def __init__(self, word_embedding, sent_emb_dim):
+        self.word_embedding = word_embedding
+        self.sent_emb_dim = sent_emb_dim
+
+        self.complete_model = None
+        self.encoder_model = None
+
+        use_gpu_if_present()
+
+    def _check_members_presence(self):
+        members = [self.word_embedding, self.complete_model, self.encoder_model, self.sent_emb_dim]
+        for member in members:
+            if member is None:
+                error_msg = '''
+                Seq2Seq: One of important class members is null.
+                See docstring of Seq2Seq class for information, what members are needed.'''
+                print(error_msg)
+                assert False
+
     def fit(self, sents):
         """
         We don't want to train model during evaluation - it would take too much time.
@@ -116,13 +82,27 @@ class Seq2Seq(BaseAlgorithm):
         pass
 
     @abstractmethod
-    def improve_weights(self, sent_pairs, epochs=1):
+    def improve_weights(self, sent_pairs, **kwagrs):
         """
         Real training of the model.
 
         sent_pairs: list of SentPairWithGs objects
         """
         pass
+
+    def transform(self, sents):
+        self._check_members_presence()
+
+        sents_vec = preprocess_sents(sents, self.word_embedding)
+
+        print("Shape of sentences after preprocessing:", sents_vec.shape)
+        assert sents_vec.shape[0] == len(sents) and sents_vec.shape[2] == self.word_embedding.get_dim()
+
+        embs = self.encoder_model.predict(sents_vec)
+
+        assert embs.shape == (sents_vec.shape[0], self.sent_emb_dim)
+
+        return embs
 
     def get_resources(self, dataset):
         self.word_embedding.get_resources(dataset)

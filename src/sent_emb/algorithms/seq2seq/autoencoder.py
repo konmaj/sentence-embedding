@@ -1,16 +1,53 @@
-import keras
 import numpy as np
-import tensorflow as tf
+
 from keras import Input, Model
 from keras.layers import GRU, Dense
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
-from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, WEIGHTS_PATH, preprocess_sent_pairs,
-                                                 preprocess_sents)
+from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
+from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
+
 
 BATCH_SIZE = 2**8  # Batch size for training.
 EPOCHS = 10
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
+
+
+def define_models(word_emb_dim, latent_dim):
+    # Define an input sequence and process it.
+    encoder_inputs = Input(shape=(None, word_emb_dim))
+    encoder = GRU(latent_dim, return_state=True)
+    encoder_outputs, state_h = encoder(encoder_inputs)
+
+    # We discard `encoder_outputs` and only keep the states.
+    encoder_states = [state_h]
+    encoder_model = Model(encoder_inputs, encoder_states)
+
+    # Set up the decoder, using `encoder_states` as initial state.
+    decoder_inputs = Input(shape=(None, word_emb_dim))
+    # We set up our decoder to return full output sequences,
+    # and to return internal states as well. We don't use the
+    # return states in the training model, but we will use them in inference.
+    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True)
+    decoder_outputs, _ = decoder_gru(decoder_inputs,
+                                     initial_state=encoder_states)
+    decoder_dense = Dense(word_emb_dim, activation='linear')
+    decoder_outputs = decoder_dense(decoder_outputs)
+
+    # Define the model that will turn
+    # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
+    complete_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+    complete_model.summary()
+
+    return complete_model, encoder_model
+
+
+def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
+    complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
+
+    load_model_weights(name, complete_model, encoder_model, force_load=force_load)
+
+    return complete_model, encoder_model
 
 
 class Autoencoder(Seq2Seq):
@@ -23,63 +60,14 @@ class Autoencoder(Seq2Seq):
         force_load: if True and there aren't proper files with saved model, then __init__
                     print error message and terminates execution of script.
         """
+        super(Autoencoder, self).__init__(GloVeSmall(), LATENT_DIM)
 
         self.name = name
-        self.all_weights_path = WEIGHTS_PATH.joinpath('{}.h5'.format(name))
-        self.encoder_weights_path = WEIGHTS_PATH.joinpath('{}_enc.h5'.format(name))
-
         self.force_load = force_load
 
-        self.word_embedding = GloVeSmall()
-        self.glove_dim = self.word_embedding.get_dim()
-
-        config = tf.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
-        sess = tf.Session(config=config)
-        keras.backend.set_session(sess)
-
-        # Define an input sequence and process it.
-        encoder_inputs = Input(shape=(None, self.glove_dim))
-        encoder = GRU(LATENT_DIM, return_state=True)
-        encoder_outputs, state_h = encoder(encoder_inputs)
-
-        # We discard `encoder_outputs` and only keep the states.
-        encoder_states = [state_h]
-        self.encoderModel = Model(encoder_inputs, encoder_states)
-
-        # Set up the decoder, using `encoder_states` as initial state.
-        decoder_inputs = Input(shape=(None, self.glove_dim))
-        # We set up our decoder to return full output sequences,
-        # and to return internal states as well. We don't use the
-        # return states in the training model, but we will use them in inference.
-        decoder_gru = GRU(LATENT_DIM, return_sequences=True, return_state=True)
-        decoder_outputs, _ = decoder_gru(decoder_inputs,
-                                         initial_state=encoder_states)
-        decoder_dense = Dense(self.glove_dim, activation='linear')
-        decoder_outputs = decoder_dense(decoder_outputs)
-
-        # Define the model that will turn
-        # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-        self.model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-
-        self.model.compile(optimizer='rmsprop', loss='mean_squared_error')
-
-        # Try to load saved model from disk.
-        if self.all_weights_path.exists() and self.encoder_weights_path.exists():
-            print('Loading weights from files:\n{}\n{}'.format(str(self.all_weights_path),
-                                                               str(self.encoder_weights_path)))
-            self.model.load_weights(str(self.all_weights_path))
-            self.encoderModel.load_weights(str(self.encoder_weights_path))
-        else:
-            if self.force_load:
-                error_msg = \
-'''ERROR: Weights not found and force_load==True
-       If you really want to create new files with weights, please add
-       --alg-kwargs='{"force_load": false}' as a param of the script.
-'''
-                print(error_msg)
-                assert False
-            else:
-                print('Weights not found - model will be created from scratch.')
+        self.complete_model, self.encoder_model = \
+            prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM)
+        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
 
     def improve_weights(self, sent_pairs, epochs=EPOCHS):
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)
@@ -96,21 +84,7 @@ class Autoencoder(Seq2Seq):
 
         decoder_target_data = np.copy(decoder_input_data)
 
-        self.model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-                       batch_size=BATCH_SIZE, epochs=epochs)
+        self.complete_model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+                                batch_size=BATCH_SIZE, epochs=epochs)
 
-        # Save model
-        WEIGHTS_PATH.mkdir(parents=True, exist_ok=True)
-        self.model.save_weights(str(self.all_weights_path))
-        self.encoderModel.save_weights(str(self.encoder_weights_path))
-
-    def transform(self, sents):
-        sents_vec = preprocess_sents(sents, self.word_embedding)
-        print("Shape of sentences after preprocessing:", sents_vec.shape)
-        assert sents_vec.shape[0] == len(sents) and sents_vec.shape[2] == self.glove_dim
-
-        embs = self.encoderModel.predict(sents_vec)
-
-        assert embs.shape == (sents_vec.shape[0], LATENT_DIM)
-
-        return embs
+        save_model_weights(self.name, self.complete_model, self.encoder_model)
