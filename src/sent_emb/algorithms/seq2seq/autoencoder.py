@@ -1,116 +1,15 @@
-import numpy as np
-import math
-
 import keras
-from keras.models import Model
-from keras.layers import Input, Dense, GRU
-
+import numpy as np
 import tensorflow as tf
+from keras import Input, Model
+from keras.layers import GRU, Dense
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
-from sent_emb.algorithms.path_utility import RESOURCES_DIR
-
-from sent_emb.evaluation.model import BaseAlgorithm, flatten_sent_pairs
-from sent_emb.evaluation.sts_read import STS, read_train_set
+from sent_emb.algorithms.seq2seq.seq2seq import Seq2Seq, WEIGHTS_PATH, GLOVE_DIM, LATENT_DIM, EPOCHS, \
+    preprocess_sent_pairs, BATCH_SIZE, preprocess_sents
 
 
-BATCH_SIZE = 2**8  # Batch size for training.
-EPOCHS = 10
-LATENT_DIM = 100  # Latent dimensionality of the encoding space.
-
-GLOVE_DIM = 50
-
-WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
-
-
-def replace_with_embs(sents, word_embedding):
-    """
-    Converts sentences to lists of their word embeddings.
-
-    sents: list of tokenized sentences - each sentence is a list of strings
-
-    unknown_vec: object of sent_emb.algorithms.unknown.Unknown abstract class
-
-    returns: list of sentences
-        sentence: list of embeddings
-        embedding: list of floats
-    """
-
-    word_vec_dict = word_embedding.embeddings(sents)
-
-    sents_vec = []
-    for sent in sents:
-        cur_sent = []
-        for word in sent:
-            cur_sent.append(word_vec_dict[word])
-        sents_vec.append(cur_sent)
-
-    return sents_vec
-
-
-def get_random_subsequence(sequence, result_size):
-    """
-    Computes random subsequence of size 'result_size' of python list 'sequence'.
-    """
-    seq_len = len(sequence)
-    assert result_size <= seq_len
-
-    selected_indices = np.sort(np.random.permutation(seq_len)[: result_size])
-
-    return [sequence[ind] for ind in np.nditer(selected_indices)]
-
-
-def align_sents(sents_vec, padding_vec, cut_rate=0.8):
-    """
-    Fits each sentence to has equal number of words (dependent on 'cut_rate').
-
-    sents_vec: list of sentences of vectorized words
-               (see return type of replace_with_embs() function)
-
-    padding_vec: np.array of type np.float and length GLOVE_DIM
-                 is used when there is not enough words in the sentence.
-
-    cut_rate: coefficient of [0; 1] interval
-              Target number of words per sentence (num_encoder_words) is set to be the minimal
-              integer such that at least 'cut_rate' fraction of original sentences are of length
-              less or equal 'num_encoder_words'.
-
-    returns: list of sentences (in format as 'sents_vec')
-             each sentence consists of MAX_ENCODER_WORDS words.
-    """
-    assert 0 <= cut_rate <= 1
-
-    sent_lengths = sorted([len(sent) for sent in sents_vec])
-    num_encoder_words = sent_lengths[int(math.ceil(cut_rate * len(sent_lengths)))]
-
-    for i in range(len(sents_vec)):
-        if len(sents_vec[i]) <= num_encoder_words:
-            sents_vec[i].extend([padding_vec for _ in range(num_encoder_words - len(sents_vec[i]))])
-        else:
-            sents_vec[i] = get_random_subsequence(sents_vec[i], num_encoder_words)
-        assert len(sents_vec[i]) == num_encoder_words
-
-    return sents_vec
-
-
-def preprocess_sents(sents, word_embedding):
-    """
-    Prepares sentences to be put into Seq2Seq neural net.
-
-    sents: list of tokenized sentences - each sentence is a list of strings
-
-    returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
-    """
-
-    sents_vec = replace_with_embs(sents, word_embedding)
-
-    padding_vec = np.zeros(GLOVE_DIM, dtype=np.float)
-    aligned_sents = align_sents(sents_vec, padding_vec)
-
-    return np.array(aligned_sents, dtype=np.float)
-
-
-class Seq2Seq(BaseAlgorithm):
+class Autoencoder(Seq2Seq):
     def __init__(self, name='s2s_gru_sts1215_g50', force_load=True):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
@@ -177,19 +76,10 @@ class Seq2Seq(BaseAlgorithm):
             else:
                 print('Weights not found - model will be created from scratch.')
 
-    def fit(self, sents):
-        """
-        We don't want to train model during evaluation - it would take too much time.
-        """
-        pass
+    def improve_weights(self, sent_pairs, epochs=EPOCHS):
+        first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)
+        sents_vec = np.concatenate([first_sents_vec, second_sents_vec])
 
-    def improve_weights(self, sents, epochs=EPOCHS):
-        """
-        Real training of the model.
-
-        sents: list of tokenized sentences - each sentence is a list of strings
-        """
-        sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
         encoder_input_data = sents_vec
@@ -222,17 +112,3 @@ class Seq2Seq(BaseAlgorithm):
 
     def get_resources(self, dataset):
         self.word_embedding.get_resources(dataset)
-
-
-def improve_model(algorithm, tokenizer):
-    """
-    Runs training of Seq2Seq 'algorithm' model on STS16 training set.
-    """
-
-    algorithm.get_resources(STS(tokenizer))
-
-    print('Reading training set...')
-    sents = flatten_sent_pairs(read_train_set(16, tokenizer))
-    print('...done.')
-
-    algorithm.improve_weights(sents)

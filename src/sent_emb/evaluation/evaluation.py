@@ -3,9 +3,11 @@ import argparse
 import json
 import sys
 
+import sent_emb.algorithms.seq2seq.autoencoder
 from sent_emb.algorithms import (glove_embeddings_mean, simpleSVD,
                                  simple_autoencoder, doc2vec,
-                                 fasttext_mean, seq2seq)
+                                 fasttext_mean)
+from sent_emb.algorithms.seq2seq import seq2seq
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts_eval, sts_read
@@ -21,7 +23,7 @@ ALGORITHMS = {
     'GloveMean': glove_embeddings_mean.GloveMean,
     'SVD': simpleSVD.SimpleSVD,
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
-    'Seq2Seq': seq2seq.Seq2Seq,
+    'S2SAutoencoder': sent_emb.algorithms.seq2seq.autoencoder.Autoencoder,
     'FastTextMean': fasttext_mean.FastTextMean,
     'FastTextSVD': fasttext_mean.FastTextSVD,
     'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
@@ -122,7 +124,7 @@ elif args.run_mode == 'train_s2s':
 '''.format(args.run_mode, alg_kwargs)
     print(params_msg)
 
-    seq2seq.improve_model(ALGORITHMS['Seq2Seq'](**alg_kwargs),
+    seq2seq.improve_model(ALGORITHMS['S2SAutoencoder'](**alg_kwargs),
                           TOKENIZERS[args.tokenizer]())
 
 else:
