@@ -28,7 +28,7 @@ ALGORITHMS = {
 }
 
 # Algorithms excluded from the smoke test
-EXCLUDED_FROM_TEST = ['Seq2Seq']
+EXCLUDED_FROM_TEST = ['Seq2Seq', 'FastTextMean', 'FastTextSVD', 'FastTextMeanWithoutUnknown']
 
 # All available tokenizers with their constructors.
 TOKENIZERS = {
