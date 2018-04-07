@@ -10,13 +10,12 @@ def replace_with_embs(sents, word_embedding):
 
     sents: list of tokenized sentences - each sentence is a list of strings
 
-    unknown_vec: object of sent_emb.algorithms.unknown.Unknown abstract class
+    word_embedding: source of word embeddings (object of WordEmbedding class)
 
     returns: list of sentences
         sentence: list of embeddings
         embedding: list of floats
     """
-
     word_vec_dict = word_embedding.embeddings(sents)
 
     sents_vec = []
@@ -31,7 +30,12 @@ def replace_with_embs(sents, word_embedding):
 
 def get_random_subsequence(sequence, result_size):
     """
-    Computes random subsequence of size 'result_size' of python list 'sequence'.
+    Computes random subsequence of size `result_size` of given `sequence`.
+
+    sequence: any data structure which supports indexing (e.g. list)
+    result_size: size of resulting subsequence
+
+    returns: subsequence of `sequence` in form of list
     """
     seq_len = len(sequence)
     assert result_size <= seq_len
@@ -43,20 +47,20 @@ def get_random_subsequence(sequence, result_size):
 
 def align_sents(sents_vec, padding_vec, cut_rate=0.8):
     """
-    Fits each sentence to has equal number of words (dependent on 'cut_rate').
+    Fits each sentence to has equal number of words (depending on `cut_rate`).
 
     sents_vec: list of sentences of vectorized words
-               (see return type of replace_with_embs() function)
+               (see return type of `replace_with_embs` function)
 
-    padding_vec: np.array of type np.float and length GLOVE_DIM
+    padding_vec: `np.array` of type `np.float` and length `GLOVE_DIM`
                  is used when there is not enough words in the sentence.
 
     cut_rate: coefficient of [0; 1] interval
-              Target number of words per sentence (num_encoder_words) is set to be the minimal
-              integer such that at least 'cut_rate' fraction of original sentences are of length
-              less or equal 'num_encoder_words'.
+              Target number of words per sentence (`num_encoder_words`) is set to be the minimal
+              integer such that at least `cut_rate` fraction of original sentences are of length
+              less or equal `num_encoder_words`.
 
-    returns: list of sentences (in format as 'sents_vec')
+    returns: list of sentences (in format as `sents_vec`)
              each sentence consists of MAX_ENCODER_WORDS words.
     """
     assert 0 <= cut_rate <= 1
@@ -80,6 +84,8 @@ def preprocess_sents(sents, word_embedding):
 
     sents: list of tokenized sentences - each sentence is a list of strings
 
+    word_embedding: source of word embeddings (object of WordEmbedding class)
+
     returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
     """
     sents_vec = replace_with_embs(sents, word_embedding)
@@ -91,6 +97,15 @@ def preprocess_sents(sents, word_embedding):
 
 
 def preprocess_sent_pairs(sent_pairs, word_embedding):
+    """
+    Prepares pairs of sentences to be put into Seq2Seq neural net.
+
+    sents: list of SentPair objects
+
+    word_embedding: source of word embeddings (object of WordEmbedding class)
+
+    returns: pair of numpy 3-D arrays of floats - each array as in `preprocess_sents` return value
+    """
     sents = flatten_sent_pairs(sent_pairs)
     sents = preprocess_sents(sents, word_embedding)
 

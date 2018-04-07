@@ -15,24 +15,26 @@ LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
 def define_models(word_emb_dim, latent_dim):
-    # Define an input sequence and process it.
-    encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i)) for i in range(2)]
+
+    # Define the encoder.
+    encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
+                      for i in range(2)]
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU')
+
+    # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
     for i in range(2):
         _, state_tmp = encoder_gru(encoder_inputs[i])
         encoder_states_h.append(state_tmp)
 
-    # We discard `encoder_outputs` and only keep the states.
     encoder_model = Model(encoder_inputs[0], encoder_states_h[0])
 
+    # Control cosine similarity of trained embeddings.
     gs_outputs = Dot(axes=1, normalize=True, name='cosine_similarity')(encoder_states_h)
 
     # Set up the decoder, using `encoder_states` as initial state.
-    decoder_inputs = [Input(shape=(None, word_emb_dim), name='decoder_input_sent{}'.format(i)) for i in range(2)]
-    # We set up our decoder to return full output sequences,
-    # and to return internal states as well. We don't use the
-    # return states in the training model, but we will use them in inference.
+    decoder_inputs = [Input(shape=(None, word_emb_dim), name='decoder_input_sent{}'.format(i))
+                      for i in range(2)]
     decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, name='decoder_GRU')
 
     decoder_gru_outputs = []
@@ -44,48 +46,53 @@ def define_models(word_emb_dim, latent_dim):
     decoder_dense = Dense(word_emb_dim, activation='linear', name='decoder_dense')
     decoder_outputs = [decoder_dense(decoder_gru_outputs[i]) for i in range(2)]
 
-    # Define the model that will turn
-    # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
+    # Define complete model, which will be trained later.
     complete_model = Model(encoder_inputs + decoder_inputs, decoder_outputs + [gs_outputs])
     complete_model.summary()
 
     return complete_model, encoder_model
 
 
-def prepare_models(name, word_emb_dim, latent_dim):
+def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
     complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
 
-    load_model_weights(name, complete_model, encoder_model)
+    load_model_weights(name, complete_model, encoder_model, force_load=force_load)
 
     return complete_model, encoder_model
 
 
 class AutoencoderWithCosine(Seq2Seq):
+    """
+    This algorithm uses autoencoding neural net based on seq2seq architecture.
+
+    Apart from autoencoding properties, the model pays attention also to gold standard scores
+    of similarity between pairs of sentences.
+    """
+
     def __init__(self, name='s2s_gru_sts1215_g50_tmp', force_load=True):
-        '''
+        """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
         name: short details of model - it's used as a prefix of name of file with saved model.
 
         force_load: if True and there aren't proper files with saved model, then __init__
-                    print error message and terminates execution of script.
-        '''
+                    prints error message and terminates execution of the script.
+        """
         super(AutoencoderWithCosine, self).__init__(GloVeSmall(), LATENT_DIM)
 
         self.name = name
         self.force_load = force_load
 
         self.complete_model, self.encoder_model = \
-            prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM)
+            prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM,
+                           force_load=force_load)
+
         self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
 
-    def improve_weights(self, sent_pairs, epochs=EPOCHS):
-        '''
-        Real training of the model.
+        self._check_members_presence()
 
-        sents: numpy array of tokenized sentences
-               (shaped as in sent_emb.evaluation.sts.read_sts_input())
-        '''
+    def improve_weights(self, sent_pairs, epochs=EPOCHS):
+        # Filter out pairs, which do not have gold standard scores.
         sent_pairs = [pair for pair in sent_pairs if pair.gs is not None]
 
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)

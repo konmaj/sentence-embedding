@@ -14,7 +14,8 @@ LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
 def define_models(word_emb_dim, latent_dim):
-    # Define an input sequence and process it.
+
+    # Define the encoder
     encoder_inputs = Input(shape=(None, word_emb_dim))
     encoder = GRU(latent_dim, return_state=True)
     encoder_outputs, state_h = encoder(encoder_inputs)
@@ -25,17 +26,14 @@ def define_models(word_emb_dim, latent_dim):
 
     # Set up the decoder, using `encoder_states` as initial state.
     decoder_inputs = Input(shape=(None, word_emb_dim))
-    # We set up our decoder to return full output sequences,
-    # and to return internal states as well. We don't use the
-    # return states in the training model, but we will use them in inference.
+
     decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True)
     decoder_outputs, _ = decoder_gru(decoder_inputs,
                                      initial_state=encoder_states)
     decoder_dense = Dense(word_emb_dim, activation='linear')
     decoder_outputs = decoder_dense(decoder_outputs)
 
-    # Define the model that will turn
-    # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
+    # Define complete model, which will be trained later.
     complete_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
     complete_model.summary()
 
@@ -51,6 +49,10 @@ def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
 
 
 class Autoencoder(Seq2Seq):
+    """
+    This algorithm uses autoencoding neural net based on seq2seq architecture.
+    """
+
     def __init__(self, name='s2s_gru_sts1215_g50', force_load=True):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
@@ -58,7 +60,7 @@ class Autoencoder(Seq2Seq):
         name: short details of model - it's used as a prefix of name of file with saved model.
 
         force_load: if True and there aren't proper files with saved model, then __init__
-                    print error message and terminates execution of script.
+                    prints error message and terminates execution of the script.
         """
         super(Autoencoder, self).__init__(GloVeSmall(), LATENT_DIM)
 
@@ -68,6 +70,8 @@ class Autoencoder(Seq2Seq):
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), LATENT_DIM)
         self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+
+        self._check_members_presence()
 
     def improve_weights(self, sent_pairs, epochs=EPOCHS):
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)

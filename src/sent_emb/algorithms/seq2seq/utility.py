@@ -56,7 +56,14 @@ def use_gpu_if_present():
 
 
 class Seq2Seq(BaseAlgorithm):
+    """Abstract class intended to be an interface for Seq2Seq algorithms."""
+
     def __init__(self, word_embedding, sent_emb_dim):
+        """
+        :param word_embedding: source of word embeddings (object of WordEmbedding class)
+
+        :param sent_emb_dim: dimension of sentence embeddings, which this algorithm will produce
+        """
         self.word_embedding = word_embedding
         self.sent_emb_dim = sent_emb_dim
 
@@ -66,6 +73,11 @@ class Seq2Seq(BaseAlgorithm):
         use_gpu_if_present()
 
     def _check_members_presence(self):
+        """
+        Checks whether all needed members are present in `self` object.
+
+        It is recommended to call this method at the end of __init__ method of subclasses.
+        """
         members = [self.word_embedding, self.complete_model, self.encoder_model, self.sent_emb_dim]
         for member in members:
             if member is None:
@@ -86,7 +98,12 @@ class Seq2Seq(BaseAlgorithm):
         """
         Real training of the model.
 
+        Implementations should always save weights of model after training.
+
         sent_pairs: list of SentPairWithGs objects
+                    (note - this type is different from the type of `sents` in `fit` method)
+
+        returns: None
         """
         pass
 
@@ -110,7 +127,7 @@ class Seq2Seq(BaseAlgorithm):
 
 def improve_model(algorithm, tokenizer):
     """
-    Runs training of Seq2Seq 'algorithm' model on STS16 training set.
+    Runs training of Seq2Seq `algorithm` on STS16 training set.
     """
     assert isinstance(algorithm, Seq2Seq)
     algorithm.get_resources(STS(tokenizer))
