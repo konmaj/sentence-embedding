@@ -154,8 +154,8 @@ def eval_sts_all(algorithm, tokenizer):
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
     """
-    task = STS(tokenizer)
-    algorithm.get_resources(task)
+    dataset = STS(tokenizer)
+    algorithm.get_resources(dataset)
 
     year_names = []
     test_names = []

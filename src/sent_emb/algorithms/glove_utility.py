@@ -59,7 +59,7 @@ def read_file(file_path, f, should_count=False, discard=0):
 def create_glove_subset(dataset, glove_file, name):
     """
     Checks whether cropped GloVe file exists and
-    crops GloVe file to contain only words used in task (if
+    crops GloVe file to contain only words used in dataset (if cropped file does not exist).
     :param dataset: dataset data object
     :param glove_file: glove_file to be cropped
     :param name: name to be append to the glove_file (usually tokenizer name)

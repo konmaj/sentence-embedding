@@ -81,11 +81,11 @@ class BaseAlgorithm(ABC):
     """
 
     @abstractmethod
-    def get_resources(self, task):
+    def get_resources(self, dataset):
         """
         Should be called once before all evaluations. Prepares external resources
         (downloads data, crops files for better performace).
-        :param task: Task object
+        :param dataset: DataSet object
         """
         pass
 

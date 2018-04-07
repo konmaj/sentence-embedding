@@ -5,7 +5,7 @@ from shutil import copyfile
 from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR, OTHER_RESOURCES_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist, zip_download_and_extract
 from sent_emb.evaluation.model import WordEmbedding
-from sent_emb.algorithms.unknown import UnknownVector, NoUnknown
+from sent_emb.algorithms.unknown import UnknownVector
 from sent_emb.algorithms.glove_utility import read_file
 
 FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
@@ -69,12 +69,12 @@ def create_fasttext_subset(word_set, name):
     unknown.close()
 
 
-def fasttext_preprocessing(task, name):
+def fasttext_preprocessing(dataset, name):
     if get_unknown_file(name).exists() and get_cropped_file(name).exists():
         print('Cropped Fasttext file exists')
     else:
         print('Creating Fasttext cropped file')
-        create_fasttext_subset(task.word_set, name)
+        create_fasttext_subset(dataset.word_set, name)
 
     get_answers(name)
 
@@ -82,7 +82,7 @@ def fasttext_preprocessing(task, name):
     copyfile(get_answers_file(name), FASTTEXT_UNKNOWN)
 
 
-def get_fasttext_resources(task):
+def get_fasttext_resources(dataset):
     print('Checking for fastText')
     emb_url = 'https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.zip'
     git_url = 'https://github.com/facebookresearch/fastText/archive/v0.1.0.zip'
@@ -102,7 +102,7 @@ def get_fasttext_resources(task):
         print('Found fasttext github')
     system('cd ' + FASTTEXT_GITHUB_DIR.as_posix() + ' && make')
 
-    fasttext_preprocessing(task, task.tokenizer_name())
+    fasttext_preprocessing(dataset, dataset.tokenizer_name())
 
 
 def normalize(vec):
@@ -141,8 +141,8 @@ class FastTextWithoutUnknown(WordEmbedding):
         return 300
 
     @staticmethod
-    def get_resources(task):
-        get_fasttext_resources(task)
+    def get_resources(dataset):
+        get_fasttext_resources(dataset)
 
     @staticmethod
     def embeddings(sents):

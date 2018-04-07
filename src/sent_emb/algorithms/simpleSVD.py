@@ -147,8 +147,8 @@ class SimpleSVD(BaseAlgorithm):
         self.prob = prob
         self.unknown_prob_mult = 1
 
-    def get_resources(self, task):
-        self.word_embeddings.get_resources(task)
+    def get_resources(self, dataset):
+        self.word_embeddings.get_resources(dataset)
         self.prob.get_resources()
 
     def fit(self, sents):

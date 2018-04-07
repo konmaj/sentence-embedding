@@ -45,19 +45,19 @@ def build_model(target_dim, input_dim, output_dim):
 
 class SimpleAutoencoder(BaseAlgorithm):
     def __init__(self, unknown=UnknownVector(GLOVE_DIM), maxlen=100, target_dim=300):
-        '''
+        """
             unknown: handler of words not appearing in GloVe
             maxlen: maximal sentence length
             target_dim: dimension of encoding space
-        '''
+        """
         self.encoder = None
         self.model = None
         self.word_embedding = GloVe(unknown)
         self.maxlen = maxlen
         self.target_dim = target_dim
 
-    def get_resources(self, task):
-        self.word_embedding.get_resources(task)
+    def get_resources(self, dataset):
+        self.word_embedding.get_resources(dataset)
 
     def fit(self, sents):
         x_train = parse_sents(sents, self.word_embedding, self.maxlen)

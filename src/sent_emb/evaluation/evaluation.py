@@ -8,7 +8,7 @@ from sent_emb.algorithms import (glove_embeddings_mean, simpleSVD,
                                  fasttext_mean, seq2seq)
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
-from sent_emb.evaluation import sts_eval
+from sent_emb.evaluation import sts_eval, sts_read
 from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingStanford
 
 
@@ -97,15 +97,21 @@ Script params
     algorithm = ALGORITHMS['Doc2Vec']()  # take any algorithm
     for token_name, token_ctor in TOKENIZERS.items():
         print('\nTesting tokenizer {}...\n'.format(token_name))
-        sts_eval.eval_sts_year(12, algorithm, token_ctor(), smoke_test=True)
+        tokenizer = token_ctor()
+        dataset = sts_read.STS(tokenizer)
+        algorithm.get_resources(tokenizer)
+        sts_eval.eval_sts_year(12, algorithm, tokenizer, smoke_test=True)
 
     tokenizer = TOKENIZERS['NLTK']()  # take any tokenizer
+    dataset = sts_read.STS(tokenizer)
     for algo_name, algo_ctor in ALGORITHMS.items():
         print('\nTesting algorithm {}...\n'.format(algo_name))
         if algo_name in EXCLUDED_FROM_TEST:
             print('...algorithm {} is excluded from the test - skip.'.format(algo_name))
         else:
-            sts_eval.eval_sts_year(12, algo_ctor(), tokenizer, smoke_test=True)
+            algorithm = algo_ctor()
+            algorithm.get_resources(dataset)
+            sts_eval.eval_sts_year(12, algorithm, tokenizer, smoke_test=True)
 
 elif args.run_mode == 'train_s2s':
     alg_kwargs = json.loads(args.alg_kwargs)

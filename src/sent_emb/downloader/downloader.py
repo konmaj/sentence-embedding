@@ -7,10 +7,7 @@ import errno
 import os
 import shutil
 
-from sent_emb.algorithms.path_utility import (RESOURCES_DIR,
-                                              DATASETS_DIR,
-                                              EMBEDDINGS_DIR,
-                                              OTHER_RESOURCES_DIR)
+from sent_emb.algorithms.path_utility import DATASETS_DIR
 
 
 STS_TEST_URLS = {

@@ -1,5 +1,3 @@
-import numpy as np
-
 from sent_emb.algorithms.fasttext_utility import FastText, FastTextWithoutUnknown
 from sent_emb.algorithms.glove_embeddings_mean import WordVectorsMean
 

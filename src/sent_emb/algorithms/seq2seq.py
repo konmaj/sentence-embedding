@@ -57,7 +57,7 @@ def get_random_subsequence(sequence, result_size):
 
     selected_indices = np.sort(np.random.permutation(seq_len)[: result_size])
 
-    return [sequence[ind] for ind in selected_indices]
+    return [sequence[ind] for ind in np.nditer(selected_indices)]
 
 
 def align_sents(sents_vec, padding_vec, cut_rate=0.8):
@@ -220,13 +220,13 @@ class Seq2Seq(BaseAlgorithm):
 
         return embs
 
-    def get_resources(self, task):
-        self.word_embedding.get_resources(task)
+    def get_resources(self, dataset):
+        self.word_embedding.get_resources(dataset)
 
 
 def improve_model(algorithm, tokenizer):
     """
-    Runs training of Seq2Seq 'algorithm' model on STS16 traing set.
+    Runs training of Seq2Seq 'algorithm' model on STS16 training set.
     """
 
     algorithm.get_resources(STS(tokenizer))
