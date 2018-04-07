@@ -145,7 +145,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
     return results
 
 
-def eval_sts_all(algorithm, tokenizer):
+def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys()):
     """
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
@@ -160,16 +160,21 @@ def eval_sts_all(algorithm, tokenizer):
     year_names = []
     test_names = []
     results = []
-    for year in sorted(TEST_NAMES):
+    
+    years = {}
+    for year in years_choose:
+        years[year] = TEST_NAMES[year]
+    
+    for year in sorted(years):
         # evaluate on STS sets from given year
-        n_tests = len(TEST_NAMES[year])
+        n_tests = len(years[year])
         year_res = eval_sts_year(year, algorithm, tokenizer)
         assert len(year_res) == n_tests
         year_avg = sum(year_res) / n_tests
 
         # update lists with results
         year_names.extend(['STS{}'.format(year)] + ['' for _ in range(n_tests)])
-        test_names.extend(TEST_NAMES[year] + ['avg'])
+        test_names.extend(years[year] + ['avg'])
         results.extend(year_res + [year_avg])
 
     # write complete log file

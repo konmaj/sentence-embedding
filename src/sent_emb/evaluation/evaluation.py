@@ -41,6 +41,8 @@ TOKENIZERS = {
     'Stanford': PreprocessingStanford
 }
 
+YEARS = ['*', '12', '13', '14', '15', '16']
+
 
 # Parse parameters
 
@@ -51,6 +53,8 @@ parser.add_argument('-t', '--tokenizer', help='select tokenizer',
                     choices=TOKENIZERS.keys(), default='NLTK')
 parser.add_argument('algorithm', nargs='?', type=str, help='select algorithm to run',
                     choices=ALGORITHMS.keys())
+parser.add_argument('-y', '--year', help='select STS year',
+                    choices=YEARS, default='*')
 parser.add_argument('--alg-kwargs', help='specify JSON with kwargs to init method of algorithm',
                     default='{}')
 args = parser.parse_args()
@@ -68,8 +72,9 @@ Script params
     run-mode: {0}
     tokenizer: {1}
     algorithm: {2}
-    alg-kwargs: {3}
-'''.format(args.run_mode, args.tokenizer, args.algorithm, alg_kwargs)
+    year: {3}
+    alg-kwargs: {4}
+'''.format(args.run_mode, args.tokenizer, args.algorithm, args.year, alg_kwargs)
     print(params_msg)
 
     if args.algorithm is None:
@@ -79,7 +84,11 @@ Script params
 
     tokenizer = TOKENIZERS[args.tokenizer]()
     algorithm = ALGORITHMS[args.algorithm](**alg_kwargs)
-    sts_eval.eval_sts_all(algorithm, tokenizer)
+    
+    if args.year == '*':
+        sts_eval.eval_sts_all(algorithm, tokenizer)
+    else:
+        sts_eval.eval_sts_all(algorithm, tokenizer, [int(args.year)])
 
 elif args.run_mode == 'stats':
     params_msg = '''
