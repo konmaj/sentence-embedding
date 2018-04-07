@@ -7,7 +7,8 @@ import sent_emb.algorithms.seq2seq.autoencoder
 from sent_emb.algorithms import (glove_embeddings_mean, simpleSVD,
                                  simple_autoencoder, doc2vec,
                                  fasttext_mean)
-from sent_emb.algorithms.seq2seq import seq2seq
+from sent_emb.algorithms.seq2seq.utility import improve_model
+from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts_eval, sts_read
@@ -23,14 +24,16 @@ ALGORITHMS = {
     'GloveMean': glove_embeddings_mean.GloveMean,
     'SVD': simpleSVD.SimpleSVD,
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
-    'S2SAutoencoder': sent_emb.algorithms.seq2seq.autoencoder.Autoencoder,
+    'S2SAutoencoder': autoencoder.Autoencoder,
+    'S2SAutoencoderWithCosine': autoencoder_with_cosine.AutoencoderWithCosine,
     'FastTextMean': fasttext_mean.FastTextMean,
     'FastTextSVD': fasttext_mean.FastTextSVD,
     'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
 }
 
 # Algorithms excluded from the smoke test
-EXCLUDED_FROM_TEST = ['Seq2Seq', 'FastTextMean', 'FastTextSVD', 'FastTextMeanWithoutUnknown']
+EXCLUDED_FROM_TEST = ['S2SAutoencoder', 'S2SAutoencoderWithCosine', 'FastTextMean', 'FastTextSVD',
+                      'FastTextMeanWithoutUnknown']
 
 # All available tokenizers with their constructors.
 TOKENIZERS = {
@@ -71,7 +74,7 @@ Script params
 
     if args.algorithm is None:
         print('\nERROR: In \'STS\' mode you have to specify algorithm to assess.')
-        print('Example: ./run_evaluation.sh Doc2Vec')
+        print('Example: ./run_docker.sh Doc2Vec')
         sys.exit(1)
 
     tokenizer = TOKENIZERS[args.tokenizer]()
@@ -120,12 +123,18 @@ elif args.run_mode == 'train_s2s':
     params_msg = '''
  Script params
     run-mode: {0}
-    alg-kwargs: {1}
-'''.format(args.run_mode, alg_kwargs)
+    algorithm: {1}
+    alg-kwargs: {2}
+'''.format(args.run_mode, args.algorithm, alg_kwargs)
     print(params_msg)
 
-    seq2seq.improve_model(ALGORITHMS['S2SAutoencoder'](**alg_kwargs),
-                          TOKENIZERS[args.tokenizer]())
+    if args.algorithm is None:
+        print('\nERROR: In \'train_s2s\' mode you have to specify algorithm to train.')
+        print('Example: ./run_docker.sh -r train_s2s S2SAutoencoder')
+        sys.exit(1)
+
+    improve_model(ALGORITHMS[args.algorithm](**alg_kwargs),
+                  TOKENIZERS[args.tokenizer]())
 
 else:
     assert False

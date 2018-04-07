@@ -5,8 +5,12 @@ from keras import Input, Model
 from keras.layers import GRU, Dense
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
-from sent_emb.algorithms.seq2seq.seq2seq import Seq2Seq, WEIGHTS_PATH, GLOVE_DIM, LATENT_DIM, EPOCHS, \
-    preprocess_sent_pairs, BATCH_SIZE, preprocess_sents
+from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, WEIGHTS_PATH, preprocess_sent_pairs,
+                                                 preprocess_sents)
+
+BATCH_SIZE = 2**8  # Batch size for training.
+EPOCHS = 10
+LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
 class Autoencoder(Seq2Seq):
@@ -27,13 +31,14 @@ class Autoencoder(Seq2Seq):
         self.force_load = force_load
 
         self.word_embedding = GloVeSmall()
+        self.glove_dim = self.word_embedding.get_dim()
 
         config = tf.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
         # Define an input sequence and process it.
-        encoder_inputs = Input(shape=(None, GLOVE_DIM))
+        encoder_inputs = Input(shape=(None, self.glove_dim))
         encoder = GRU(LATENT_DIM, return_state=True)
         encoder_outputs, state_h = encoder(encoder_inputs)
 
@@ -42,14 +47,14 @@ class Autoencoder(Seq2Seq):
         self.encoderModel = Model(encoder_inputs, encoder_states)
 
         # Set up the decoder, using `encoder_states` as initial state.
-        decoder_inputs = Input(shape=(None, GLOVE_DIM))
+        decoder_inputs = Input(shape=(None, self.glove_dim))
         # We set up our decoder to return full output sequences,
         # and to return internal states as well. We don't use the
         # return states in the training model, but we will use them in inference.
         decoder_gru = GRU(LATENT_DIM, return_sequences=True, return_state=True)
         decoder_outputs, _ = decoder_gru(decoder_inputs,
                                          initial_state=encoder_states)
-        decoder_dense = Dense(GLOVE_DIM, activation='linear')
+        decoder_dense = Dense(self.glove_dim, activation='linear')
         decoder_outputs = decoder_dense(decoder_outputs)
 
         # Define the model that will turn
@@ -102,13 +107,10 @@ class Autoencoder(Seq2Seq):
     def transform(self, sents):
         sents_vec = preprocess_sents(sents, self.word_embedding)
         print("Shape of sentences after preprocessing:", sents_vec.shape)
-        assert sents_vec.shape[0] == len(sents) and sents_vec.shape[2] == GLOVE_DIM
+        assert sents_vec.shape[0] == len(sents) and sents_vec.shape[2] == self.glove_dim
 
         embs = self.encoderModel.predict(sents_vec)
 
         assert embs.shape == (sents_vec.shape[0], LATENT_DIM)
 
         return embs
-
-    def get_resources(self, dataset):
-        self.word_embedding.get_resources(dataset)

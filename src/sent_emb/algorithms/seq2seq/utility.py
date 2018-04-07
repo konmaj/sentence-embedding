@@ -8,12 +8,6 @@ from sent_emb.evaluation.model import BaseAlgorithm, flatten_sent_pairs
 from sent_emb.evaluation.sts_read import STS, read_train_set
 
 
-BATCH_SIZE = 2**8  # Batch size for training.
-EPOCHS = 10
-LATENT_DIM = 100  # Latent dimensionality of the encoding space.
-
-GLOVE_DIM = 50
-
 WEIGHTS_PATH = RESOURCES_DIR.joinpath('weights')
 
 
@@ -97,7 +91,7 @@ def preprocess_sents(sents, word_embedding):
     """
     sents_vec = replace_with_embs(sents, word_embedding)
 
-    padding_vec = np.zeros(GLOVE_DIM, dtype=np.float)
+    padding_vec = np.zeros(word_embedding.get_dim(), dtype=np.float)
     aligned_sents = align_sents(sents_vec, padding_vec)
 
     return np.array(aligned_sents, dtype=np.float)
@@ -122,7 +116,7 @@ class Seq2Seq(BaseAlgorithm):
         pass
 
     @abstractmethod
-    def improve_weights(self, sent_pairs, epochs=EPOCHS):
+    def improve_weights(self, sent_pairs, epochs=1):
         """
         Real training of the model.
 
@@ -130,12 +124,15 @@ class Seq2Seq(BaseAlgorithm):
         """
         pass
 
+    def get_resources(self, dataset):
+        self.word_embedding.get_resources(dataset)
+
 
 def improve_model(algorithm, tokenizer):
     """
     Runs training of Seq2Seq 'algorithm' model on STS16 training set.
     """
-
+    assert isinstance(algorithm, Seq2Seq)
     algorithm.get_resources(STS(tokenizer))
 
     print('Reading training set...')

@@ -120,6 +120,17 @@ class BaseAlgorithm(ABC):
 
 # Auxiliary functions for operating on lists of SentPair or SentPairWithGs
 
+def flatten_sent_pairs(sent_pairs):
+    """
+    Converts list of SentPair or SentPairWithGs to list of sentences
+    (sentences from single pair are adjacent in resulting list).
+
+    :param sent_pairs: list of SentPair or SentPairWithGs objects
+    :return: list of list of strings
+    """
+    return [sent for sent_pair in sent_pairs for sent in [sent_pair.sent1, sent_pair.sent2]]
+
+
 def zip_sent_pairs_with_gs(sent_pairs, gold_standards):
     """
     Zips list of SentPairs with list of corresponding gold standard scores.
@@ -133,12 +144,5 @@ def zip_sent_pairs_with_gs(sent_pairs, gold_standards):
     return [SentPairWithGs(*pair, gs=gs) for pair, gs in zip(sent_pairs, gold_standards)]
 
 
-def flatten_sent_pairs(sent_pairs):
-    """
-    Converts list of SentPair or SentPairWithGs to list of sentences
-    (sentences from single pair are adjacent in resulting list).
-
-    :param sent_pairs: list of SentPair or SentPairWithGs objects
-    :return: list of list of strings
-    """
-    return [sent for sent_pair in sent_pairs for sent in [sent_pair.sent1, sent_pair.sent2]]
+def get_gold_standards(sent_pairs_with_gs):
+    return [sent_pair.gs for sent_pair in sent_pairs_with_gs]
