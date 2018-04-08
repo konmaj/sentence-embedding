@@ -18,16 +18,20 @@ Following modes are avaliable to run script:
 1. STS (default) &ndash; evaluates given algorithm on Semantic Textual Similarity task,
 2. stats &ndash; generates statistics about STS datasets,
 3. test &ndash; runs smoke test of all algorithms and tokenizers,
-4. train_s2s &ndash; trains Seq2Seq model saved on disk.
+4. train_s2s &ndash; trains given Seq2Seq model saved on disk.
 
 ## Algorithms
 
 Following algorithms are available for evaluation
 1. Autoencoder,
 2. Doc2Vec,
-3. GloveMean,
-4. Seq2Seq,
-5. SVD.
+3. FastTextMean,
+4. FastTextMeanWithoutUnknown,
+5. FastTextSVD,
+6. GloveMean,
+7. S2SAutoencoder,
+8. S2SAutoencoderWithCosine,
+9. SVD.
 
 ## Tokenizers
 
@@ -56,17 +60,18 @@ Print statistics about STS datasets
 $ scripts/run_docker.sh -r stats
 ```
 
-Run test of evaluation on tiny training set for all algorithms and tokenizers.
+Run test of evaluation on tiny training set for all tokenizers and selected algorithms.
 ```
 $ scripts/run_docker.sh -r test
 ```
 This command tests only successful termination &ndash; it does not any checks of correctness.
 
-Train Seq2Seq model &ndash; abort if model not exist.
+Train S2SAutoencoderWithCosine model &ndash; abort if model not exist.
 ```
-$ scripts/run_docker.sh -r train_s2s
+$ scripts/run_docker.sh -r train_s2s S2SAutoencoderWithCosine
 ```
-Train Seq2Seq model &ndash; create if model not exist.
+Train S2SAutoencoder model &ndash; create if model not exist. Note that ```false``` should be lowercase
+and ```force_load``` should be surrounded by double quotation marks &ndash; requirements of JSON.
 ```
-$ scripts/run_docker.sh -r train_s2s --alg-kwargs='{"force_load": false}'
+$ scripts/run_docker.sh -r train_s2s S2SAutoencoder --alg-kwargs='{"force_load": false}'
 ```
