@@ -1,2 +1,3 @@
 nlpkit==0.35
 nltk==3.2.4
+spacy==2.0.9

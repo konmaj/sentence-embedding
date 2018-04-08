@@ -17,6 +17,7 @@ RUN pip3 install -r /tmp/1_math.txt
 
 RUN pip3 install -r /tmp/2_nlp.txt
 RUN ["python3", "-c", "import nltk; nltk.download('punkt')"]
+RUN ["python3", "-m", "spacy", "download", "en"]
 
 RUN pip3 install -r /tmp/3_ml.txt
 RUN pip3 install -r /tmp/4_other.txt

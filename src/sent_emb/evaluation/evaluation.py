@@ -4,8 +4,8 @@ import json
 import sys
 
 import sent_emb.algorithms.seq2seq.autoencoder
-from sent_emb.algorithms import (glove_embeddings_mean, simpleSVD,
-                                 simple_autoencoder, doc2vec,
+from sent_emb.algorithms import (glove_embeddings_mean, glove_embeddings_pos_mean,
+                                 simpleSVD, simple_autoencoder, doc2vec,
                                  fasttext_mean)
 from sent_emb.algorithms.seq2seq.utility import improve_model
 from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine
@@ -22,6 +22,7 @@ RUN_MODES = ['STS', 'stats', 'test', 'train_s2s']
 ALGORITHMS = {
     'Doc2Vec': doc2vec.Doc2Vec,
     'GloveMean': glove_embeddings_mean.GloveMean,
+    'GlovePosMean': glove_embeddings_pos_mean.GlovePosMean,
     'SVD': simpleSVD.SimpleSVD,
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
     'S2SAutoencoder': autoencoder.Autoencoder,
