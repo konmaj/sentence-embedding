@@ -31,7 +31,8 @@ Following algorithms are available for evaluation
 6. GloveMean,
 7. S2SAutoencoder,
 8. S2SAutoencoderWithCosine,
-9. SVD.
+9. SVD,
+10. GlovePosMean.
 
 ## Tokenizers
 
