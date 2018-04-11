@@ -39,21 +39,21 @@ def read_file(file_path, f, should_count=False, discard=0):
         it's usually 0, but sometimes there are some meta data in the first line (eg. FastText)
     """
     line_count = 0
-    glove_file = open(file_path)
-    for idx, raw_line in enumerate(glove_file):
-        if idx >= discard:
-            line = raw_line.split(' ')
-            word = line[0]
-            data = line[1:]
-            # dealing with trailing spaces in files
-            while data[-1] == "" or data[-1] == '\n':
-                data = data[:-1]
-            vec = np.array(data, dtype=np.float)
-            f(word, vec, raw_line)
-            if should_count:
-                line_count += 1
-                if line_count % (100 * 1000) == 0:
-                    print('  line_count: ', line_count)
+    with open(file_path) as glove_file:
+        for raw_line in glove_file:
+            line_count += 1
+            if line_count > discard:
+                line = raw_line.split(' ')
+                word = line[0]
+                data = line[1:]
+                # dealing with trailing spaces in files
+                while data[-1] == "" or data[-1] == '\n':
+                    data = data[:-1]
+                vec = np.array(data, dtype=np.float)
+                f(word, vec, raw_line)
+                if should_count:
+                    if line_count % (100 * 1000) == 0:
+                        print('  line_count: ', line_count)
 
 
 def create_glove_subset(dataset, glove_file, name):
