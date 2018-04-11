@@ -22,6 +22,7 @@ RUN_MODES = ['STS', 'stats', 'test', 'get_resources', 'train_s2s']
 ALGORITHMS = {
     'Doc2Vec': doc2vec.Doc2Vec,
     'GloveMean': glove_embeddings_mean.GloveMean,
+    'GloveMeanNormalized': glove_embeddings_mean.GloveMeanNormalized,
     'GlovePosMean': glove_embeddings_pos_mean.GlovePosMean,
     'SVD': simpleSVD.SimpleSVD,
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
@@ -30,6 +31,7 @@ ALGORITHMS = {
     'FastTextMean': fasttext_mean.FastTextMean,
     'FastTextSVD': fasttext_mean.FastTextSVD,
     'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
+    'FastTextSVDWithoutUnknown': fasttext_mean.FastTextSVDWithoutUnknown,
 }
 
 # Minimal constructor parameters, which enables to get all resources

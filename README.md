@@ -29,11 +29,13 @@ Following algorithms are available for evaluation
 3. FastTextMean,
 4. FastTextMeanWithoutUnknown,
 5. FastTextSVD,
-6. GloveMean,
-7. S2SAutoencoder,
-8. S2SAutoencoderWithCosine,
-9. SVD,
-10. GlovePosMean.
+6. FastTextSVDWithoutUnknown,
+7. GloveMean,
+8. GloveMeanNormalized,
+9. S2SAutoencoder,
+10. S2SAutoencoderWithCosine,
+11. SVD,
+12. GlovePosMean.
 
 ## Tokenizers
 

@@ -31,3 +31,8 @@ class WordVectorsMean(BaseAlgorithm):
 class GloveMean(WordVectorsMean):
     def __init__(self, unknown=UnknownVector(300)):
         self.word_embeddings = GloVe(unknown)
+
+
+class GloveMeanNormalized(WordVectorsMean):
+    def __init__(self, unknown=UnknownVector(300)):
+        self.word_embeddings = GloVe(unknown, should_normalize=True)

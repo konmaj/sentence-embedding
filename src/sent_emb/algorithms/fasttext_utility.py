@@ -6,7 +6,7 @@ from sent_emb.algorithms.path_utility import EMBEDDINGS_DIR, OTHER_RESOURCES_DIR
 from sent_emb.downloader.downloader import mkdir_if_not_exist, zip_download_and_extract
 from sent_emb.evaluation.model import WordEmbedding
 from sent_emb.algorithms.unknown import UnknownVector
-from sent_emb.algorithms.glove_utility import read_file
+from sent_emb.algorithms.glove_utility import read_file, GloVe
 
 FASTTEXT_DIR = EMBEDDINGS_DIR.joinpath('fasttext')
 
@@ -142,6 +142,24 @@ class FastText(WordEmbedding):
         read_file(FASTTEXT_CROPPED, process)
         read_file(FASTTEXT_UNKNOWN, process)
         return answer
+
+
+class FastTextWithGloVeLength(FastText):
+    def __init__(self, glove=GloVe(unknown=UnknownVector(300))):
+        self.glove = glove
+        assert(glove.get_dim() == 300)
+        super(FastTextWithGloVeLength, self).__init__()
+
+    def get_resources(self, dataset):
+        super(FastTextWithGloVeLength, self).get_resources(dataset)
+        self.glove.get_resources(dataset)
+
+    def embeddings(self, sents):
+        glove_emb = self.glove.embeddings(sents)
+        fasttext_emb = super(FastTextWithGloVeLength, self).embeddings(sents)
+        for word in fasttext_emb:
+            fasttext_emb[word] = fasttext_emb[word] * glove_emb[word]
+        return fasttext_emb
 
 
 class FastTextWithoutUnknown(WordEmbedding):
