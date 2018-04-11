@@ -82,3 +82,9 @@ and ```force_load``` should be surrounded by double quotation marks &ndash; requ
 ```
 $ scripts/run_docker.sh -r train_s2s S2SAutoencoder --alg-kwargs='{"force_load": false}'
 ```
+## Problems with memory
+Using this scripts you may encounter some memory issues (sometimes takes >10GB of RAM). The most time and memory-consuming part is computing vectors with FastText. If you have less than 16 GB of RAM it is recommended to terminate the script when the warning about memory-consuimng computation appears, run
+```
+./other/fasttext/fastText-0.1.0/fasttext print-word-vectors embeddings/fasttext/wiki.en.bin <embeddings/fasttext/unknown_${TOKENIZER}.txt >embeddings/fasttext/answers_${TOKENIZER}.txt
+```
+with TOKENIZER variable being the
