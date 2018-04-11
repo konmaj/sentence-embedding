@@ -71,7 +71,7 @@ class SimpleProb(Prob):
             for word in sent:
                 if word not in self.count:
                     self.count[word] = 0
-                    self.count[word] += 1
+                self.count[word] += 1
                 self.all += 1
         return self
 
