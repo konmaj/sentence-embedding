@@ -43,6 +43,21 @@ class Prob(ABC):
     def get(self, word):
         pass
 
+    @abstractmethod
+    def get_resources(self):
+        pass
+
+
+class NoProb(Prob):
+    def transform(self, sents):
+        pass
+
+    def get(self, word):
+        return 0.5
+
+    def get_resources(self):
+        pass
+
 
 class SimpleProb(Prob):
     def __init__(self):
