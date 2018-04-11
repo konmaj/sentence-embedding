@@ -36,9 +36,18 @@ def get_answers(name):
 
     if not answer.exists():
         print('Computing FastText vectors for unknown words...')
-        system(FASTTEXT_GITHUB_DIR.as_posix() + '/fasttext print-word-vectors '
-               + FASTTEXT_BIN.as_posix()
-               + ' < ' + question.as_posix() + ' > ' + answer.as_posix())
+        command = FASTTEXT_GITHUB_DIR.as_posix() + '/fasttext print-word-vectors '\
+                  + FASTTEXT_BIN.as_posix()\
+                  + ' < ' + question.as_posix() + ' > ' + answer.as_posix()
+        msg = '''
+        WARNING: This command can take a really long time (or even not terminate at all if you have less than 16 GB of RAM.
+                 In this case try running:
+                 {}
+                 from your bash terminal and run your script again.
+        '''.format(command)
+
+        print(msg)
+        system(command)
         print('...vectors computed')
     else:
         print('FastText vectors for unknown words found')
