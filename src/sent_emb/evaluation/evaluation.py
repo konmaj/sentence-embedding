@@ -16,7 +16,7 @@ from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingSt
 
 
 # All available evaluation methods.
-RUN_MODES = ['STS', 'stats', 'test', 'train_s2s']
+RUN_MODES = ['STS', 'stats', 'test', 'get_resources', 'train_s2s']
 
 # All available algorithms with their constructors.
 ALGORITHMS = {
@@ -30,6 +30,12 @@ ALGORITHMS = {
     'FastTextMean': fasttext_mean.FastTextMean,
     'FastTextSVD': fasttext_mean.FastTextSVD,
     'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
+}
+
+# Minimal constructor parameters, which enables to get all resources
+PARAMS_RESOURCES = {
+    'S2SAutoencoder': {"force_load": False},
+    'S2SAutoencoderWithCosine': {"force_load": False},
 }
 
 # Algorithms excluded from the smoke test
@@ -85,7 +91,7 @@ Script params
 
     tokenizer = TOKENIZERS[args.tokenizer]()
     algorithm = ALGORITHMS[args.algorithm](**alg_kwargs)
-    
+
     if args.year == '*':
         sts_eval.eval_sts_all(algorithm, tokenizer)
     else:
@@ -127,6 +133,24 @@ Script params
             algorithm = algo_ctor()
             algorithm.get_resources(dataset)
             sts_eval.eval_sts_year(12, algorithm, tokenizer, smoke_test=True)
+
+elif args.run_mode == 'get_resources':
+    params_msg = '''
+Script params
+    run-mode: {0}
+'''.format(args.run_mode)
+    print(params_msg)
+
+    datasets = [sts_read.STS(tokenizer()) for _, tokenizer in TOKENIZERS.items()]
+    for algo_name, algo_ctor in ALGORITHMS.items():
+        print('\nGetting resources for {}...\n'.format(algo_name))
+        if algo_name in PARAMS_RESOURCES:
+            kwargs = PARAMS_RESOURCES[algo_name]
+        else:
+            kwargs = {}
+        algorithm = algo_ctor(**kwargs)
+        for d in datasets:
+            algorithm.get_resources(d)
 
 elif args.run_mode == 'train_s2s':
     alg_kwargs = json.loads(args.alg_kwargs)

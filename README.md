@@ -1,7 +1,7 @@
 # Building and clustering sentence embeddings
 
 There are two main bash scripts of project:
-1. scripts/run_docker.sh 
+1. scripts/run_docker.sh
    * requires permissions to run docker,
    * supports all options described below,
    * does not contain tensorflow-gpu.
@@ -18,7 +18,8 @@ Following modes are avaliable to run script:
 1. STS (default) &ndash; evaluates given algorithm on Semantic Textual Similarity task,
 2. stats &ndash; generates statistics about STS datasets,
 3. test &ndash; runs smoke test of all algorithms and tokenizers,
-4. train_s2s &ndash; trains given Seq2Seq model saved on disk.
+4. get_resources &ndash; downloads and pre-computes all necessary resources for all algorithms and tokenizers.
+5. train_s2s &ndash; trains given Seq2Seq model saved on disk.
 
 ## Algorithms
 
@@ -66,6 +67,11 @@ Run test of evaluation on tiny training set for all tokenizers and selected algo
 $ scripts/run_docker.sh -r test
 ```
 This command tests only successful termination &ndash; it does not any checks of correctness.
+
+Downloads and prepares resources for all algorithms (takes a really long time).
+```
+$ scripts/run_docker.sh -r get_resources
+```
 
 Train S2SAutoencoderWithCosine model &ndash; abort if model not exist.
 ```
