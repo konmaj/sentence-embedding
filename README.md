@@ -1,5 +1,11 @@
 # Building and clustering sentence embeddings
 
+## Overview
+
+In order to configure your system to run project, follow guidelines in these files:
+1. [README_docker](./doc/README_docker.md) 
+2. [README_GPU](./doc/README_GPU.md) &ndash; only if you want to use GPU.
+
 There are two main bash scripts of project:
 1. scripts/run_docker.sh
    * requires permissions to run docker,
@@ -84,9 +90,3 @@ and ```force_load``` should be surrounded by double quotation marks &ndash; requ
 ```
 $ scripts/run_docker.sh -r train_s2s S2SAutoencoder --alg-kwargs='{"force_load": false}'
 ```
-## Problems with memory
-Using this scripts you may encounter some memory issues (sometimes takes >10GB of RAM). The most time and memory-consuming part is computing vectors with FastText. If you have less than 16 GB of RAM it is recommended to terminate the script when the warning about memory-consuimng computation appears, run
-```
-./other/fasttext/fastText-0.1.0/fasttext print-word-vectors embeddings/fasttext/wiki.en.bin <embeddings/fasttext/unknown_${TOKENIZER}.txt >embeddings/fasttext/answers_${TOKENIZER}.txt
-```
-with TOKENIZER variable being the
