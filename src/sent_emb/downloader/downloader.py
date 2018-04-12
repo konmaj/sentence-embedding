@@ -51,6 +51,8 @@ def low_memory_unpack_archive(zip_pathname, extract_dir):
 
 
 def zip_download_and_extract(url, dir_path):
+    mkdir_if_not_exist(dir_path)
+
     dir_pathname = str(dir_path.resolve())
     zip_path = dir_path.joinpath(Path(url).name)
     zip_pathname = str(zip_path.resolve())
