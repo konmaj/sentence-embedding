@@ -37,16 +37,16 @@ def low_memory_unpack_archive(zip_pathname, extract_dir):
     with open(zip_pathname, "rb") as zipsrc:
         zfile = zipfile.ZipFile(zipsrc)
         for member in zfile.infolist():
-            target_path = os.path.join(extract_dir, member.filename)
-            if target_path.endswith('/'):  # folder entry, create
-                try:
-                    os.makedirs(target_path)
-                except (OSError, IOError) as err:
-                    # Windows may complain if the folders already exist
-                    if err.errno != errno.EEXIST:
-                        raise
+            target_path = Path(extract_dir, member.filename)
+
+            if member.is_dir():
+                mkdir_if_not_exist(target_path)  # line can not be omitted - empty directory case
                 continue
-            with open(target_path, 'wb') as outfile, zfile.open(member) as infile:
+
+            # create parent directory if file is before its directory in the zfile.infolist()
+            mkdir_if_not_exist(target_path.parent)
+
+            with open(str(target_path.resolve()), 'wb') as outfile, zfile.open(member) as infile:
                 shutil.copyfileobj(infile, outfile)
 
 
