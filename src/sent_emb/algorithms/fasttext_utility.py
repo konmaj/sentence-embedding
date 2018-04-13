@@ -40,11 +40,11 @@ def get_answers(name):
                   + FASTTEXT_BIN.as_posix()\
                   + ' < ' + question.as_posix() + ' > ' + answer.as_posix()
         msg = '''
-        WARNING: This command can take a really long time (or even not terminate at all if you have less than 16 GB of RAM.
-                 In this case try running:
-                 {}
-                 from your bash terminal and run your script again.
-        '''.format(command)
+        WARNING: This computation may cause thrashing if:
+        1) You have less than 11 GB of RAM and
+        2) you didn't set memory limits for Docker container.
+        See doc/README_docker.md for further info.
+        '''
 
         print(msg)
         system(command)
