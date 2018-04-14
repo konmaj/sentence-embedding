@@ -1,5 +1,6 @@
 import numpy as np
 
+from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, Dense, GRU, Dot
 
@@ -10,11 +11,12 @@ from sent_emb.evaluation.model import get_gold_standards
 
 
 BATCH_SIZE = 2 ** 8  # Batch size for training.
-EPOCHS = 1
+EPOCHS = 5
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
 def define_models(word_emb_dim, latent_dim):
+    K.set_learning_phase(1)
 
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
