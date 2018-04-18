@@ -152,7 +152,7 @@ class ExternalProbFocusUnknown(Prob):
 
 
 class SimpleSVD(BaseAlgorithm):
-    def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProb()):
+    def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProbFocusUnknown()):
         """
             param_a: parameter of scale for probabilities
             prob: object of class Prob, which provides probability of words in corpus

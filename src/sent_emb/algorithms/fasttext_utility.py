@@ -137,10 +137,14 @@ class FastText(WordEmbedding):
 
         def process(w, vec, _):
             if w in words:
-                answer[w] = normalize(vec)
+                answer[w] = vec
 
         read_file(FASTTEXT_CROPPED, process)
-        read_file(FASTTEXT_UNKNOWN, process)
+
+        def process_unknown(w, vec, _):
+            if w in words:
+                answer[w] = normalize(vec)
+        read_file(FASTTEXT_UNKNOWN, process_unknown)
         return answer
 
 

@@ -33,6 +33,6 @@ class FastTextSVD(SimpleSVD):
 
 
 class FastTextSVDWithoutUnknown(SimpleSVD):
-    def __init__(self, param_a=0.001, prob=ExternalProb()):
+    def __init__(self, param_a=0.001, prob=ExternalProbFocusUnknown()):
         fasttext = FastTextWithoutUnknown()
         super(FastTextSVDWithoutUnknown, self).__init__(fasttext, param_a, prob)
