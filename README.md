@@ -48,6 +48,8 @@ Following algorithms are available for evaluation
 Following tokenizers are available to use during evaluation:
 1. NLTK (default) &ndash; tokenizer from NLTK library
 2. Stanford &ndash; tokenizer from Stanford CoreNLP library
+3. Spacy &ndash; tokenizer and POS tagger (not only splits words but also filters some of them!),
+   if training the model is not necessary use with --no-train flag
 
 ## Sample commands
 Command below are presented for scripts/run_docker.sh, but analogous parameters could be passed to
