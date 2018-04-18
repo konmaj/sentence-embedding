@@ -72,7 +72,7 @@ def get_grad_script_res(output):
     return float(res.groups()[0])  # throws exception in case of wrong conversion
 
 
-def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False):
+def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False, training=True):
     """
     Evaluates given embedding algorithm on STS inputs from given year.
 
@@ -94,17 +94,20 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
 
     assert isinstance(algorithm, BaseAlgorithm)
 
-    print('Reading training set for', sts_name)
-    train_sents = read_train_set(year, tokenizer)
+    if training:
+        print('Reading training set for', sts_name)
+        train_sents = read_train_set(year, tokenizer)
 
-    train_sents = flatten_sent_pairs(train_sents)
+        train_sents = flatten_sent_pairs(train_sents)
 
-    if smoke_test:
-        train_sents = train_sents[:10]
-    print('numbers of sentences:', len(train_sents))
-    print('Training started...')
-    algorithm.fit(train_sents)
-    print('... training completed.')
+        if smoke_test:
+            train_sents = train_sents[:10]
+        print('numbers of sentences:', len(train_sents))
+        print('Training started...')
+        algorithm.fit(train_sents)
+        print('... training completed.')
+    else:
+        print('No training')
 
     print('Evaluating on datasets from', sts_name)
     results = []
@@ -145,7 +148,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False)
     return results
 
 
-def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys()):
+def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=True):
     """
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
@@ -168,7 +171,7 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys()):
     for year in sorted(years):
         # evaluate on STS sets from given year
         n_tests = len(years[year])
-        year_res = eval_sts_year(year, algorithm, tokenizer)
+        year_res = eval_sts_year(year, algorithm, tokenizer, training=training)
         assert len(year_res) == n_tests
         year_avg = sum(year_res) / n_tests
 

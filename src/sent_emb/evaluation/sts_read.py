@@ -1,6 +1,7 @@
 import csv
 
 from sent_emb.algorithms.path_utility import DATASETS_DIR
+from sent_emb.evaluation.preprocessing import PreprocessingStanford
 from sent_emb.evaluation.model import DataSet, flatten_sent_pairs, SentPair, zip_sent_pairs_with_gs
 
 
@@ -87,18 +88,24 @@ def tokens(tokenizer, sents):
     :param sents: list of sentences (list of strings) to tokenize
     :return: list of tokenized sentences - each sentence is represented as a list of words
     """
-    guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
-    con = ''
-    for sent in sents:
-        con = con + sent + '\n' + guard + '\n'
-    tokenized = tokenizer.tokenize(con)
-    res = [[]]
-    for word in tokenized:
-        if word == guard:
-            res.append([])
-        else:
-            res[-1].append(word)
-    return res[:-1]
+    if isinstance(tokenizer, PreprocessingStanford):
+        guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
+        con = ''
+        for sent in sents:
+            con = con + sent + '\n' + guard + '\n'
+        tokenized = tokenizer.tokenize(con)
+        res = [[]]
+        for word in tokenized:
+            if word == guard:
+                res.append([])
+            else:
+                res[-1].append(word)
+        return res[:-1]
+    else:
+        res = []
+        for sent in sents:
+            res.append(tokenizer.tokenize(sent))
+        return res
 
 
 def read_sts_input(file_path, tokenizer):

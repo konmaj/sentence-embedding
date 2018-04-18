@@ -12,7 +12,7 @@ from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts_eval, sts_read
-from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingStanford
+from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingStanford, PreprocessingSpacy
 
 
 # All available evaluation methods.
@@ -47,7 +47,8 @@ EXCLUDED_FROM_TEST = ['S2SAutoencoder', 'S2SAutoencoderWithCosine', 'FastTextMea
 # All available tokenizers with their constructors.
 TOKENIZERS = {
     'NLTK': PreprocessingNltk,
-    'Stanford': PreprocessingStanford
+    'Stanford': PreprocessingStanford,
+    'Spacy': PreprocessingSpacy,
 }
 
 YEARS = ['*', '12', '13', '14', '15', '16']
@@ -66,6 +67,7 @@ parser.add_argument('-y', '--year', help='select STS year',
                     choices=YEARS, default='*')
 parser.add_argument('--alg-kwargs', help='specify JSON with kwargs to init method of algorithm',
                     default='{}')
+parser.add_argument('--no-train', action='store_true', help='use if no training is necessary')
 args = parser.parse_args()
 
 
@@ -94,10 +96,12 @@ Script params
     tokenizer = TOKENIZERS[args.tokenizer]()
     algorithm = ALGORITHMS[args.algorithm](**alg_kwargs)
 
+    training = not args.no_train
+
     if args.year == '*':
-        sts_eval.eval_sts_all(algorithm, tokenizer)
+        sts_eval.eval_sts_all(algorithm, tokenizer, training=training)
     else:
-        sts_eval.eval_sts_all(algorithm, tokenizer, [int(args.year)])
+        sts_eval.eval_sts_all(algorithm, tokenizer, [int(args.year)], training=training)
 
 elif args.run_mode == 'stats':
     params_msg = '''
