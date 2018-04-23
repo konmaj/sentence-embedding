@@ -43,7 +43,7 @@ class PreprocessingSpacy(Preprocessing):
         res = [w.text.lower() for w in doc if w.pos_ in POS_TAGS]
 
         if res == []:
-            return [sent[0].lower]
+            return [sent[0].lower()]
         return res
 
     def name(self):
