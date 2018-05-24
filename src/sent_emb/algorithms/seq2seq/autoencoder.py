@@ -75,7 +75,7 @@ class Autoencoder(Seq2Seq):
 
         self._check_members_presence()
 
-    def improve_weights(self, sent_pairs, epochs=EPOCHS):
+    def improve_weights(self, sent_pairs, epochs, **kwargs):
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)
         sents_vec = np.concatenate([first_sents_vec, second_sents_vec])
 

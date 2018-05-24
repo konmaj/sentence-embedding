@@ -11,7 +11,6 @@ from sent_emb.evaluation.model import get_gold_standards
 
 
 BATCH_SIZE = 2 ** 8  # Batch size for training.
-EPOCHS = 5
 LATENT_DIM = 100  # Latent dimensionality of the encoding space.
 
 
@@ -93,7 +92,7 @@ class AutoencoderWithCosine(Seq2Seq):
 
         self._check_members_presence()
 
-    def improve_weights(self, sent_pairs, epochs=EPOCHS):
+    def improve_weights(self, sent_pairs, epochs, **kwargs):
         # Filter out pairs, which do not have gold standard scores.
         sent_pairs = [pair for pair in sent_pairs if pair.gs is not None]
 

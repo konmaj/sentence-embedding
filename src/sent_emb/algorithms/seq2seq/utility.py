@@ -7,8 +7,8 @@ from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sents
 
 from sent_emb.evaluation.model import BaseAlgorithm
+from sent_emb.evaluation.sts_eval import eval_sts_all
 from sent_emb.evaluation.sts_read import STS, read_train_set
-
 
 WEIGHTS_PATH = OTHER_RESOURCES_DIR.joinpath('seq2seq', 'weights')
 
@@ -95,7 +95,7 @@ class Seq2Seq(BaseAlgorithm):
         pass
 
     @abstractmethod
-    def improve_weights(self, sent_pairs, **kwagrs):
+    def improve_weights(self, sent_pairs, epochs, **kwagrs):
         """
         Real training of the model.
 
@@ -103,6 +103,8 @@ class Seq2Seq(BaseAlgorithm):
 
         sent_pairs: list of SentPairWithGs objects
                     (note - this type is different from the type of `sents` in `fit` method)
+
+        epochs: number of epochs to train
 
         returns: None
         """
@@ -126,9 +128,20 @@ class Seq2Seq(BaseAlgorithm):
         self.word_embedding.get_resources(dataset)
 
 
-def improve_model(algorithm, tokenizer):
+def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None):
     """
     Runs training of Seq2Seq `algorithm` on STS16 training set.
+
+    epochs: number of epochs to train the model
+
+    eval_interval: specifies how often evaluation should be run
+        if None, then no evaluation will be run
+
+        otherwise evaluation will be run after:
+            eval_interval[0], eval_interval[0] + eval_interval[1], ...
+        epochs of training, until the `epochs` limit will be reached
+
+        when there is not enough elements in `eval_interval` list, then `eval_interval[-1]` is used.
     """
     assert isinstance(algorithm, Seq2Seq)
     algorithm.get_resources(STS(tokenizer))
@@ -137,4 +150,26 @@ def improve_model(algorithm, tokenizer):
     sent_pairs = read_train_set(16, tokenizer)
     print('...done.')
 
-    algorithm.improve_weights(sent_pairs)
+    if eval_interval is None:
+        algorithm.improve_weights(sent_pairs, epochs)
+    else:
+        years_to_eval = [15, 16]
+
+        completed_epochs = 0
+        for interval in eval_interval:
+            epochs_to_run = min(epochs - completed_epochs, interval)
+            if epochs_to_run == 0:
+                break
+
+            algorithm.improve_weights(sent_pairs, epochs_to_run)
+            completed_epochs += epochs_to_run
+
+            eval_sts_all(algorithm, tokenizer, years_choose=years_to_eval, training=False)
+
+        while completed_epochs < epochs:
+            epochs_to_run = min(epochs - completed_epochs, eval_interval[-1])
+
+            algorithm.improve_weights(sent_pairs, epochs_to_run)
+            completed_epochs += epochs_to_run
+
+            eval_sts_all(algorithm, tokenizer, years_choose=years_to_eval, training=False)

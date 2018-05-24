@@ -67,6 +67,9 @@ parser.add_argument('-y', '--year', help='select STS year',
                     choices=YEARS, default='*')
 parser.add_argument('--alg-kwargs', help='specify JSON with kwargs to init method of algorithm',
                     default='{}')
+parser.add_argument('--train-kwargs', help='specify JSON with kwargs to improve_model function '
+                                           '(for one of S2S models)',
+                    default='{}')
 parser.add_argument('--no-train', action='store_true', help='use if no training is necessary')
 args = parser.parse_args()
 
@@ -160,12 +163,14 @@ Script params
 
 elif args.run_mode == 'train_s2s':
     alg_kwargs = json.loads(args.alg_kwargs)
+    train_kwargs = json.loads(args.train_kwargs)
     params_msg = '''
  Script params
     run-mode: {0}
     algorithm: {1}
     alg-kwargs: {2}
-'''.format(args.run_mode, args.algorithm, alg_kwargs)
+    train-kwargs: {3}
+'''.format(args.run_mode, args.algorithm, alg_kwargs, train_kwargs)
     print(params_msg)
 
     if args.algorithm is None:
@@ -174,7 +179,8 @@ elif args.run_mode == 'train_s2s':
         sys.exit(1)
 
     improve_model(ALGORITHMS[args.algorithm](**alg_kwargs),
-                  TOKENIZERS[args.tokenizer]())
+                  TOKENIZERS[args.tokenizer](),
+                  **train_kwargs)
 
 else:
     assert False
