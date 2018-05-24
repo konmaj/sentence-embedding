@@ -3,12 +3,11 @@ import argparse
 import json
 import sys
 
-import sent_emb.algorithms.seq2seq.autoencoder
 from sent_emb.algorithms import (glove_embeddings_mean, glove_embeddings_pos_mean,
                                  simpleSVD, simple_autoencoder, doc2vec,
                                  fasttext_mean)
 from sent_emb.algorithms.seq2seq.utility import improve_model
-from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine
+from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine, cosine
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts_eval, sts_read
@@ -28,6 +27,7 @@ ALGORITHMS = {
     'Autoencoder': simple_autoencoder.SimpleAutoencoder,
     'S2SAutoencoder': autoencoder.Autoencoder,
     'S2SAutoencoderWithCosine': autoencoder_with_cosine.AutoencoderWithCosine,
+    'S2SCosine': cosine.Cosine,
     'FastTextMean': fasttext_mean.FastTextMean,
     'FastTextSVD': fasttext_mean.FastTextSVD,
     'FastTextMeanWithoutUnknown': fasttext_mean.FastTextMeanWithoutUnknown,
@@ -41,8 +41,8 @@ PARAMS_RESOURCES = {
 }
 
 # Algorithms excluded from the smoke test
-EXCLUDED_FROM_TEST = ['S2SAutoencoder', 'S2SAutoencoderWithCosine', 'FastTextMean', 'FastTextSVD',
-                      'FastTextMeanWithoutUnknown']
+EXCLUDED_FROM_TEST = ['S2SAutoencoder', 'S2SAutoencoderWithCosine', 'S2SCosine',
+                      'FastTextMean', 'FastTextSVD', 'FastTextMeanWithoutUnknown']
 
 # All available tokenizers with their constructors.
 TOKENIZERS = {
