@@ -39,7 +39,7 @@ def read_file(file_path, f, should_count=False, discard=0):
         it's usually 0, but sometimes there are some meta data in the first line (eg. FastText)
     """
     line_count = 0
-    with open(file_path) as glove_file:
+    with open(str(file_path)) as glove_file:
         for raw_line in glove_file:
             line_count += 1
             if line_count > discard:
@@ -67,7 +67,7 @@ def create_glove_subset(dataset, glove_file, name):
     if get_glove_file(glove_file, name).exists():
         print('Cropped GloVe file already exists')
     else:
-        file = open(get_glove_file(glove_file, name), 'w')
+        file = open(str(get_glove_file(glove_file, name)), 'w')
 
         def crop(word, _, line):
             if word in dataset.word_set:
@@ -77,7 +77,7 @@ def create_glove_subset(dataset, glove_file, name):
         read_file(glove_file, crop, should_count=True)
         file.close()
 
-    copyfile(get_glove_file(glove_file, name), GLOVE_FILE)
+    copyfile(str(get_glove_file(glove_file, name)), str(GLOVE_FILE))
 
 
 def download_glove(glove_file):
