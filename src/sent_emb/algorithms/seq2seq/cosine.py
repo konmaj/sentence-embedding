@@ -3,6 +3,7 @@ import numpy as np
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, GRU, Dot
+from keras.regularizers import l2
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
@@ -13,13 +14,16 @@ from sent_emb.evaluation.model import get_gold_standards
 BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim):
+def define_models(word_emb_dim, latent_dim, reg_coef=None):
     K.set_learning_phase(1)
 
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
-    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU')
+
+    regularizer = None if reg_coef is None else l2(reg_coef)
+    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
+                      kernel_regularizer=regularizer, bias_regularizer=regularizer)
 
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
@@ -55,7 +59,8 @@ class Cosine(Seq2Seq):
     of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
+                 reg_coef=None):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
