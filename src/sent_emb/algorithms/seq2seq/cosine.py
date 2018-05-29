@@ -14,7 +14,7 @@ from sent_emb.evaluation.model import get_gold_standards
 BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim, reg_coef=None):
+def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurrent_dropout=0.0):
     K.set_learning_phase(1)
 
     # Define the encoder.
@@ -23,7 +23,8 @@ def define_models(word_emb_dim, latent_dim, reg_coef=None):
 
     regularizer = None if reg_coef is None else l2(reg_coef)
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
-                      kernel_regularizer=regularizer, bias_regularizer=regularizer)
+                      kernel_regularizer=regularizer, bias_regularizer=regularizer,
+                      dropout=dropout, recurrent_dropout=recurrent_dropout)
 
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
@@ -43,8 +44,8 @@ def define_models(word_emb_dim, latent_dim, reg_coef=None):
     return complete_model, encoder_model
 
 
-def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
-    complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
+def prepare_models(name, word_emb_dim, latent_dim, force_load=True, **kwargs):
+    complete_model, encoder_model = define_models(word_emb_dim, latent_dim, **kwargs)
 
     load_model_weights(name, complete_model, encoder_model, force_load=force_load)
 
@@ -60,7 +61,8 @@ class Cosine(Seq2Seq):
     """
 
     def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
-                 reg_coef=None):
+                 reg_coef=None, loss='mean_squared_error', optimizer='rmsprop',
+                 dropout=0.0, recurrent_dropout=0.0):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -78,9 +80,10 @@ class Cosine(Seq2Seq):
 
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load)
+                           force_load=force_load, reg_coef=reg_coef,
+                           dropout=dropout, recurrent_dropout=recurrent_dropout)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+        self.complete_model.compile(optimizer=optimizer, loss=loss)
 
         self._check_members_presence()
 
