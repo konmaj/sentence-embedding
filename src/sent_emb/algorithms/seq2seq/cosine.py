@@ -3,7 +3,7 @@ import numpy as np
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, GRU, Dot
-from keras.regularizers import l2
+from keras.regularizers import l1
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
@@ -21,9 +21,9 @@ def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurren
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
 
-    regularizer = None if reg_coef is None else l2(reg_coef)
+    regularizer = None if reg_coef is None else l1(reg_coef)
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
-                      kernel_regularizer=regularizer, bias_regularizer=regularizer,
+                      recurrent_regularizer=regularizer,
                       dropout=dropout, recurrent_dropout=recurrent_dropout)
 
     # Get encoder hidden states - sentence embeddings.
