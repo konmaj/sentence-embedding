@@ -69,7 +69,8 @@ class AutoencoderWithCosine(Seq2Seq):
     of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True, latent_dim=100,
+                 loss_weights=None):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -87,9 +88,10 @@ class AutoencoderWithCosine(Seq2Seq):
 
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load)
+                           force_load=force_load, loss_weights=loss_weights)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error',
+                                    loss_weights=loss_weights)
 
         self._check_members_presence()
 
