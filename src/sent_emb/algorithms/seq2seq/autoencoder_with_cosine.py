@@ -1,8 +1,10 @@
 import numpy as np
 
 from keras import backend as K
-from keras.models import Model
 from keras.layers import Input, Dense, GRU, Dot
+from keras.models import Model
+from keras.regularizers import l1
+
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
@@ -13,13 +15,17 @@ from sent_emb.evaluation.model import get_gold_standards
 BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim):
+def define_models(word_emb_dim, latent_dim,
+                  enc_gru_reg_coef=None, dec_gru_reg_coef=None):
     K.set_learning_phase(1)
 
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
-    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU')
+
+    enc_gru_regularizer = None if enc_gru_reg_coef is None else l1(enc_gru_reg_coef)
+    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
+                      recurrent_regularizer=enc_gru_regularizer)
 
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
@@ -35,7 +41,10 @@ def define_models(word_emb_dim, latent_dim):
     # Set up the decoder, using `encoder_states` as initial state.
     decoder_inputs = [Input(shape=(None, word_emb_dim), name='decoder_input_sent{}'.format(i))
                       for i in range(2)]
-    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, name='decoder_GRU')
+
+    dec_gru_regularizer = None if dec_gru_reg_coef is None else l1(dec_gru_reg_coef)
+    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, name='decoder_GRU',
+                      recurrent_regularizer=dec_gru_regularizer)
 
     decoder_gru_outputs = []
     for i in range(2):
@@ -53,8 +62,8 @@ def define_models(word_emb_dim, latent_dim):
     return complete_model, encoder_model
 
 
-def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
-    complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
+def prepare_models(name, word_emb_dim, latent_dim, force_load=True, **kwargs):
+    complete_model, encoder_model = define_models(word_emb_dim, latent_dim, **kwargs)
 
     load_model_weights(name, complete_model, encoder_model, force_load=force_load)
 
@@ -70,7 +79,8 @@ class AutoencoderWithCosine(Seq2Seq):
     """
 
     def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True, latent_dim=100,
-                 loss_weights=None):
+                 loss='mean_squared_error', loss_weights=None,
+                 enc_gru_reg_coef=None, dec_gru_reg_coef=None):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -88,9 +98,11 @@ class AutoencoderWithCosine(Seq2Seq):
 
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load)
+                           force_load=force_load,
+                           enc_gru_reg_coef=enc_gru_reg_coef,
+                           dec_gru_reg_coef=dec_gru_reg_coef)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error',
+        self.complete_model.compile(optimizer='rmsprop', loss=loss,
                                     loss_weights=loss_weights)
 
         self._check_members_presence()
