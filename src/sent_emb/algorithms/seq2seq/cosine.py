@@ -5,7 +5,7 @@ from keras.models import Model
 from keras.layers import Input, GRU, Dot
 from keras.regularizers import l1
 
-from sent_emb.algorithms.glove_utility import GloVeSmall
+from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
 from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
 from sent_emb.evaluation.model import get_gold_standards
@@ -62,7 +62,7 @@ class Cosine(Seq2Seq):
 
     def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
                  reg_coef=None, loss='mean_squared_error', optimizer='rmsprop',
-                 dropout=0.0, recurrent_dropout=0.0):
+                 dropout=0.0, recurrent_dropout=0.0, glove_dim=50):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -73,7 +73,12 @@ class Cosine(Seq2Seq):
 
         latent_dim: latent dimensionality of the encoding space.
         """
-        super().__init__(GloVeSmall(), latent_dim)
+        if glove_dim == 50:
+            super().__init__(GloVeSmall(), latent_dim)
+        elif glove_dim == 300:
+            super().__init__(GloVe(), latent_dim)
+        else:
+            assert(False)
 
         self.name = name
         self.force_load = force_load

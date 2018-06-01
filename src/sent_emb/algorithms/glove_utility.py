@@ -104,7 +104,7 @@ def normalize(vec):
 
 
 class GloVe(WordEmbedding):
-    def __init__(self, unknown, glove_file=RAW_GLOVE_FILE_300, dim=300, should_normalize=False):
+    def __init__(self, unknown=UnknownVector(300), glove_file=RAW_GLOVE_FILE_300, dim=300, should_normalize=False):
         self.unknown = unknown
         self.glove_file = glove_file
         self.dim = dim
