@@ -88,7 +88,7 @@ class AutoencoderWithCosine(Seq2Seq):
 
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load, loss_weights=loss_weights)
+                           force_load=force_load)
 
         self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error',
                                     loss_weights=loss_weights)
