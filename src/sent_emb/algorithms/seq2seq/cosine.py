@@ -14,7 +14,8 @@ from sent_emb.evaluation.model import get_gold_standards
 BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurrent_dropout=0.0):
+def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurrent_dropout=0.0,
+                  recurrent_activation='hard_sigmoid'):
     K.set_learning_phase(1)
 
     # Define the encoder.
@@ -24,7 +25,8 @@ def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurren
     regularizer = None if reg_coef is None else l1(reg_coef)
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
                       recurrent_regularizer=regularizer,
-                      dropout=dropout, recurrent_dropout=recurrent_dropout)
+                      dropout=dropout, recurrent_dropout=recurrent_dropout,
+                      recurrent_activation=recurrent_activation)
 
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
@@ -62,7 +64,8 @@ class Cosine(Seq2Seq):
 
     def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
                  reg_coef=None, loss='mean_squared_error', optimizer='rmsprop',
-                 dropout=0.0, recurrent_dropout=0.0, glove_dim=50):
+                 dropout=0.0, recurrent_dropout=0.0, glove_dim=50,
+                 recurrent_activation='hard_sigmoid'):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -78,7 +81,7 @@ class Cosine(Seq2Seq):
         elif glove_dim == 300:
             super().__init__(GloVe(), latent_dim)
         else:
-            assert(False)
+            assert False
 
         self.name = name
         self.force_load = force_load
@@ -86,7 +89,8 @@ class Cosine(Seq2Seq):
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
                            force_load=force_load, reg_coef=reg_coef,
-                           dropout=dropout, recurrent_dropout=recurrent_dropout)
+                           dropout=dropout, recurrent_dropout=recurrent_dropout,
+                           recurrent_activation=recurrent_activation)
 
         self.complete_model.compile(optimizer=optimizer, loss=loss)
 
