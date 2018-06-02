@@ -6,7 +6,7 @@ from keras.models import Model
 from keras.regularizers import l1
 
 
-from sent_emb.algorithms.glove_utility import GloVeSmall
+from sent_emb.algorithms.glove_utility import GloVeSmall, GloVe
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
 from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
 from sent_emb.evaluation.model import get_gold_standards
@@ -78,7 +78,8 @@ class AutoencoderWithCosine(Seq2Seq):
     of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True, latent_dim=100,
+    def __init__(self, name='s2s_gru_cos_g50_sts1215', force_load=True,
+                 latent_dim=100, glove_dim=50,
                  loss='mean_squared_error', loss_weights=None,
                  enc_gru_reg_coef=None, dec_gru_reg_coef=None):
         """
@@ -91,7 +92,12 @@ class AutoencoderWithCosine(Seq2Seq):
 
         latent_dim: latent dimensionality of the encoding space.
         """
-        super(AutoencoderWithCosine, self).__init__(GloVeSmall(), latent_dim)
+        if glove_dim == 50:
+            super().__init__(GloVeSmall(), latent_dim)
+        elif glove_dim == 300:
+            super().__init__(GloVe(), latent_dim)
+        else:
+            assert False
 
         self.name = name
         self.force_load = force_load
