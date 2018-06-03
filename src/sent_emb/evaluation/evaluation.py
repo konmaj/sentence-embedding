@@ -60,7 +60,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--run-mode', help='select run mode of script',
                     choices=RUN_MODES, default='STS')
 parser.add_argument('-t', '--tokenizer', help='select tokenizer',
-                    choices=TOKENIZERS.keys(), default='NLTK')
+                    choices=TOKENIZERS.keys(), default='Stanford')
 parser.add_argument('algorithm', nargs='?', type=str, help='select algorithm to run',
                     choices=ALGORITHMS.keys())
 parser.add_argument('-y', '--year', help='select STS year',

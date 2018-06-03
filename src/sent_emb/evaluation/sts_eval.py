@@ -163,11 +163,14 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
     year_names = []
     test_names = []
     results = []
-    
+
+    sparse_names = []
+    sparse_results = []
+
     years = {}
     for year in years_choose:
         years[year] = TEST_NAMES[year]
-    
+
     for year in sorted(years):
         # evaluate on STS sets from given year
         n_tests = len(years[year])
@@ -178,7 +181,9 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
         # update lists with results
         year_names.extend(['STS{}'.format(year)] + ['' for _ in range(n_tests)])
         test_names.extend(years[year] + ['avg'])
+        sparse_names.append('STS {} avg'.format(year))
         results.extend(year_res + [year_avg])
+        sparse_results.append(year_avg)
 
     # write complete log file
     file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
@@ -188,4 +193,13 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
         writer.writerow(year_names)
         writer.writerow(test_names)
         writer.writerow(['{:.3f}'.format(res) for res in results])
-    print('Complete results are in file\n{}\n'.format(file_path))
+
+
+    file_name_sparse = 'STS-SPARSE-{}.csv'.format(get_cur_time_str())
+    file_path_sparse = LOG_PATH.joinpath(file_name_sparse)
+    with open (str(file_path_sparse), "w+") as log_file:
+        writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
+        writer.writerow(sparse_names)
+        writer.writerow(['{:.3f}'.format(res) for res in sparse_results])
+
+    print('Complete results are in files\n{}\n{}\n'.format(file_path, file_path_sparse))

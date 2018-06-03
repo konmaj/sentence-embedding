@@ -162,7 +162,8 @@ class FastTextWithGloVeLength(FastText):
         glove_emb = self.glove.embeddings(sents)
         fasttext_emb = super(FastTextWithGloVeLength, self).embeddings(sents)
         for word in fasttext_emb:
-            fasttext_emb[word] = fasttext_emb[word] * glove_emb[word]
+            v = fasttext_emb[word]
+            fasttext_emb[word] = v / np.linalg.norm(v) * np.linalg.norm(glove_emb[word])
         return fasttext_emb
 
 
