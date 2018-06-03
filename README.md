@@ -40,8 +40,9 @@ Following algorithms are available for evaluation
 8. GloveMeanNormalized,
 9. S2SAutoencoder,
 10. S2SAutoencoderWithCosine,
-11. SVD,
-12. GlovePosMean.
+11. S2SCosine,
+12. SVD,
+13. GlovePosMean.
 
 ## Tokenizers
 
@@ -67,7 +68,7 @@ $ scripts/run_docker.sh Doc2Vec -r STS -t Stanford --alg-kwargs='{"vector_dim": 
 Doc2Vec object will be constructed as follows: ```Doc2Vec(vector_dim=20, epochs=5)```.
 ```--alg-kwargs``` parameter has to be in JSON format.
 
-Print statistics about STS datasets
+Print statistics about STS datasets.
 ```
 $ scripts/run_docker.sh -r stats
 ```
@@ -91,4 +92,9 @@ Train S2SAutoencoder model &ndash; create if model not exist. Note that ```false
 and ```force_load``` should be surrounded by double quotation marks &ndash; requirements of JSON.
 ```
 $ scripts/run_docker.sh -r train_s2s S2SAutoencoder --alg-kwargs='{"force_load": false}'
+```
+
+Train S2SCosine model for 20 epochs and evaluate it after 1, 3, 6, 10, 14, 18, 20 epochs.
+```
+$ scripts/run_docker.sh -r train_s2s S2SCosine --train-kwargs='{"epochs": 20, "eval_interval": [1, 2, 3, 4]}'
 ```

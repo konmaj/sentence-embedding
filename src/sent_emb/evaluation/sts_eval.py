@@ -156,6 +156,11 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
 
     algorithm: instance of BaseAlgorithm class
                (see docstring of sent_emb.evaluation.model.BaseAlgorithm for more info)
+
+    years_choose: specifies years to choose datasets from
+
+    training: if False, then skips phase of training
+        (in particular skips loading resources for training)
     """
     dataset = STS(tokenizer)
     algorithm.get_resources(dataset)

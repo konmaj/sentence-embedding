@@ -36,6 +36,19 @@ class TestDataStatistic(ABC):
         pass
 
 
+class CountSentencesStatistic(TestDataStatistic):
+    def __init__(self, agg_func):
+        super().__init__(agg_func)
+        self.agg_func = np.sum
+
+    def add_sents_pair(self, sents):
+        self.results.append([2])
+
+    @staticmethod
+    def name():
+        return "Number of sentences"
+
+
 class LengthStatistic(TestDataStatistic):
     def __init__(self, agg_func):
         super().__init__(agg_func)

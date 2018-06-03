@@ -1,38 +1,39 @@
 import numpy as np
 
-from keras import Input, Model
-from keras.layers import GRU, Dense
+from keras import backend as K
+from keras.models import Model
+from keras.layers import Input, GRU, Dot
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
 from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
+from sent_emb.evaluation.model import get_gold_standards
 
 
-BATCH_SIZE = 2**8  # Batch size for training.
+BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
 def define_models(word_emb_dim, latent_dim):
+    K.set_learning_phase(1)
 
-    # Define the encoder
-    encoder_inputs = Input(shape=(None, word_emb_dim))
-    encoder = GRU(latent_dim, return_state=True)
-    encoder_outputs, state_h = encoder(encoder_inputs)
+    # Define the encoder.
+    encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
+                      for i in range(2)]
+    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU')
 
-    # We discard `encoder_outputs` and only keep the states.
-    encoder_states = [state_h]
-    encoder_model = Model(encoder_inputs, encoder_states)
+    # Get encoder hidden states - sentence embeddings.
+    encoder_states_h = []
+    for i in range(2):
+        _, state_tmp = encoder_gru(encoder_inputs[i])
+        encoder_states_h.append(state_tmp)
 
-    # Set up the decoder, using `encoder_states` as initial state.
-    decoder_inputs = Input(shape=(None, word_emb_dim))
+    encoder_model = Model(encoder_inputs[0], encoder_states_h[0])
 
-    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True)
-    decoder_outputs, _ = decoder_gru(decoder_inputs,
-                                     initial_state=encoder_states)
-    decoder_dense = Dense(word_emb_dim, activation='linear')
-    decoder_outputs = decoder_dense(decoder_outputs)
+    # Control cosine similarity of trained embeddings.
+    gs_outputs = Dot(axes=1, normalize=True, name='cosine_similarity')(encoder_states_h)
 
     # Define complete model, which will be trained later.
-    complete_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+    complete_model = Model(encoder_inputs, [gs_outputs])
     complete_model.summary()
 
     return complete_model, encoder_model
@@ -46,12 +47,15 @@ def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
     return complete_model, encoder_model
 
 
-class Autoencoder(Seq2Seq):
+class Cosine(Seq2Seq):
     """
     This algorithm uses autoencoding neural net based on seq2seq architecture.
+
+    Apart from autoencoding properties, the model pays attention also to gold standard scores
+    of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_gru_g50_sts1215', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -62,7 +66,7 @@ class Autoencoder(Seq2Seq):
 
         latent_dim: latent dimensionality of the encoding space.
         """
-        super(Autoencoder, self).__init__(GloVeSmall(), latent_dim)
+        super().__init__(GloVeSmall(), latent_dim)
 
         self.name = name
         self.force_load = force_load
@@ -76,21 +80,17 @@ class Autoencoder(Seq2Seq):
         self._check_members_presence()
 
     def improve_weights(self, sent_pairs, epochs, **kwargs):
+        # Filter out pairs, which do not have gold standard scores.
+        sent_pairs = [pair for pair in sent_pairs if pair.gs is not None]
+
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)
-        sents_vec = np.concatenate([first_sents_vec, second_sents_vec])
+        print("Shape of sentences after preprocessing:", first_sents_vec.shape, second_sents_vec.shape)
 
-        print("Shape of sentences after preprocessing:", sents_vec.shape)
+        encoder_input_data = [first_sents_vec, second_sents_vec]
 
-        encoder_input_data = sents_vec
+        gs_target_data = np.array(get_gold_standards(sent_pairs)) * (2 / 5) - 1
 
-        # i-th cell of decoder receives as input a word embedding,
-        # which (i-1)-th cell of encoder received as input.
-        decoder_input_data = np.zeros(sents_vec.shape, dtype='float32')
-        decoder_input_data[:, 1:, :] = sents_vec[:, :-1, :]
-
-        decoder_target_data = np.copy(decoder_input_data)
-
-        self.complete_model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+        self.complete_model.fit(encoder_input_data, [np.array(gs_target_data)],
                                 batch_size=BATCH_SIZE, epochs=epochs)
 
         save_model_weights(self.name, self.complete_model, self.encoder_model)
