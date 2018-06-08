@@ -1,7 +1,7 @@
 import numpy as np
 
 from sent_emb.evaluation.model import BaseAlgorithm
-from sent_emb.algorithms.unknown import UnknownVector
+from sent_emb.algorithms.unknown import UnknownVector, UnknownZero, UnknownRandom
 from sent_emb.algorithms.glove_utility import GloVe
 
 
@@ -29,10 +29,28 @@ class WordVectorsMean(BaseAlgorithm):
 
 
 class GloveMean(WordVectorsMean):
-    def __init__(self, unknown=UnknownVector(300)):
+    def __init__(self, unknown_str='average'):
+        if unknown_str == 'average':
+            unknown = UnknownVector(300)
+        elif unknown_str == 'zero':
+            unknown = UnknownZero(300)
+        elif unknown_str == 'random':
+            unknown = UnknownRandom(300)
+        else:
+            print('Invalid unknown_str={} argument in GloveMean constructor'.format(unknown_str))
+            assert False
         self.word_embeddings = GloVe(unknown)
 
 
 class GloveMeanNormalized(WordVectorsMean):
-    def __init__(self, unknown=UnknownVector(300)):
+    def __init__(self, unknown_str='average'):
+        if unknown_str == 'average':
+            unknown = UnknownVector(300)
+        elif unknown_str == 'zero':
+            unknown = UnknownZero(300)
+        elif unknown_str == 'random':
+            unknown = UnknownRandom(300)
+        else:
+            print('Invalid unknown_str={} argument in GloveMeanNormalized constructor'.format(unknown_str))
+            assert False
         self.word_embeddings = GloVe(unknown, should_normalize=True)

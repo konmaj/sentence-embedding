@@ -197,14 +197,13 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         writer.writerow(year_names)
         writer.writerow(test_names)
-        writer.writerow(['{:.3f}'.format(res) for res in results])
-
+        writer.writerow(['{:.1f}'.format(res) for res in results])
 
     file_name_sparse = 'STS-SPARSE-{}.csv'.format(get_cur_time_str())
     file_path_sparse = LOG_PATH.joinpath(file_name_sparse)
     with open (str(file_path_sparse), "w+") as log_file:
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
         writer.writerow(sparse_names)
-        writer.writerow(['{:.3f}'.format(res) for res in sparse_results])
+        writer.writerow(['{:.1f}'.format(res) for res in sparse_results])
 
     print('Complete results are in files\n{}\n{}\n'.format(file_path, file_path_sparse))

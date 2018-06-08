@@ -1,4 +1,5 @@
 import numpy as np
+from os import system
 from pathlib import Path
 from abc import ABC, abstractmethod
 import gzip
@@ -14,6 +15,8 @@ from sent_emb.evaluation.model import BaseAlgorithm
 
 
 WORD_FREQUENCY_FILE = OTHER_RESOURCES_DIR.joinpath('word_frequency', 'all.num.gz')
+WIKI_FREQUENCY_FILE = OTHER_RESOURCES_DIR.joinpath('word_frequency', 'wikipedia-word-frequency', 'results'
+, 'enwiki-20150602-words-frequency.txt')
 
 
 def get_word_frequency():
@@ -151,12 +154,61 @@ class ExternalProbFocusUnknown(Prob):
         get_word_frequency()
 
 
+class WikiProb(Prob):
+    def __init__(self):
+        self.all = 0
+        self.count = {}
+        self.simple = SimpleProb()
+
+    def transform(self, sents):
+        self.all = 0
+        self.count = {}
+        self.simple = SimpleProb()
+        self.simple.transform(sents)
+        for lines in open(WIKI_FREQUENCY_FILE):
+            sep = lines.split()
+            word = sep[0]
+            c = int(sep[1])
+            self.all += c
+            self.count[word] = c
+        return self
+
+    def get(self, word):
+        if not self.count:
+            raise RuntimeError('ExternalProb: get() was called before fit()')
+        if word in self.count:
+            return self.count[word] / self.all
+        else:
+            if self.simple.count[word] > 5:
+                return self.simple.get(word)
+            else:
+                return self.simple.count[word] / self.all
+
+    @staticmethod
+    def get_resources():
+        git_url = 'https://github.com/IlyaSemenov/wikipedia-word-frequency'
+
+        mkdir_if_not_exist(OTHER_RESOURCES_DIR)
+        if not WIKI_FREQUENCY_FILE.parent.is_dir():
+            system('cd ' + OTHER_RESOURCES_DIR.joinpath('word_frequency').as_posix() + ' && git clone ' + git_url)
+        pass
+
+
 class SimpleSVD(BaseAlgorithm):
-    def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob=ExternalProbFocusUnknown()):
+    def __init__(self, word_embeddings=GloVe(UnknownVector(300)), param_a=0.001, prob_str='external'):
         """
             param_a: parameter of scale for probabilities
             prob: object of class Prob, which provides probability of words in corpus
         """
+        if prob_str == 'external':
+            prob = ExternalProbFocusUnknown()
+        elif prob_str == 'no_prob':
+            prob = NoProb()
+        elif prob_str == 'wiki':
+            prob = WikiProb()
+        else:
+            print('Invalid prob_str={} argument in SimpleSVD constructor'.format(prob_str))
+            assert False
         self.word_embeddings = word_embeddings
         self.param_a = param_a
         self.prob = prob

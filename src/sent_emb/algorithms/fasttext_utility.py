@@ -141,9 +141,16 @@ class FastText(WordEmbedding):
 
         read_file(FASTTEXT_CROPPED, process)
 
+        sum_len = 0
+        count = 0
+        for w in answer:
+            vec = answer[w]
+            sum_len += np.linalg.norm(vec)
+            count += 1
+
         def process_unknown(w, vec, _):
             if w in words:
-                answer[w] = normalize(vec)
+                answer[w] = sum_len / count * normalize(vec)
         read_file(FASTTEXT_UNKNOWN, process_unknown)
         return answer
 
@@ -155,7 +162,7 @@ class FastTextWithGloVeLength(FastText):
         super(FastTextWithGloVeLength, self).__init__()
 
     def get_resources(self, dataset):
-        super(FastTextWithGloVeLength, self).get_resources(dataset)
+        FastTextWithGloVeLength.get_resources(dataset)
         self.glove.get_resources(dataset)
 
     def embeddings(self, sents):
@@ -164,6 +171,16 @@ class FastTextWithGloVeLength(FastText):
         for word in fasttext_emb:
             v = fasttext_emb[word]
             fasttext_emb[word] = v / np.linalg.norm(v) * np.linalg.norm(glove_emb[word])
+        return fasttext_emb
+
+
+class FastTextNormalized(FastText):
+    @staticmethod
+    def embeddings(sents):
+        fasttext_emb = FastText.embeddings(sents)
+        for word in fasttext_emb:
+            v = fasttext_emb[word]
+            fasttext_emb[word] = v / np.linalg.norm(v)
         return fasttext_emb
 
 
