@@ -148,7 +148,7 @@ def eval_sts_year(year, algorithm, tokenizer, year_file=False, smoke_test=False,
     return results
 
 
-def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=True):
+def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), name='', training=True):
     """
     Evaluates given embedding algorithm on all STS12-STS16 files.
 
@@ -191,7 +191,7 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
         sparse_results.append(year_avg)
 
     # write complete log file
-    file_name = 'STS-ALL-{}.csv'.format(get_cur_time_str())
+    file_name = 'STS-ALL-{0}{1}.csv'.format(name, get_cur_time_str())
     file_path = LOG_PATH.joinpath(file_name)
     with open(str(file_path), 'w+') as log_file:
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -199,7 +199,7 @@ def eval_sts_all(algorithm, tokenizer, years_choose=TEST_NAMES.keys(), training=
         writer.writerow(test_names)
         writer.writerow(['{:.1f}'.format(res) for res in results])
 
-    file_name_sparse = 'STS-SPARSE-{}.csv'.format(get_cur_time_str())
+    file_name_sparse = 'STS-SPARSE-{0}{1}.csv'.format(name, get_cur_time_str())
     file_path_sparse = LOG_PATH.joinpath(file_name_sparse)
     with open (str(file_path_sparse), "w+") as log_file:
         writer = csv.writer(log_file, delimiter='\t', quoting=csv.QUOTE_NONE)

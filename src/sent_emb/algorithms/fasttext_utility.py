@@ -162,7 +162,7 @@ class FastTextWithGloVeLength(FastText):
         super(FastTextWithGloVeLength, self).__init__()
 
     def get_resources(self, dataset):
-        FastTextWithGloVeLength.get_resources(dataset)
+        super(FastTextWithGloVeLength, self).get_resources(dataset)
         self.glove.get_resources(dataset)
 
     def embeddings(self, sents):

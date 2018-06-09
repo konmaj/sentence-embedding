@@ -88,7 +88,7 @@ def tokens(tokenizer, sents):
     :param sents: list of sentences (list of strings) to tokenize
     :return: list of tokenized sentences - each sentence is represented as a list of words
     """
-    if isinstance(tokenizer, PreprocessingStanford):
+    if hasattr(tokenizer, '_should_merge'):
         guard = "verylongwordwhichisntawordanddoesntappearinlanguage"
         con = ''
         for sent in sents:

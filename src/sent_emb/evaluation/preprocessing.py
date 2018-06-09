@@ -15,6 +15,9 @@ class Preprocessing(ABC):
 
 
 class PreprocessingNltk(Preprocessing):
+    def __init__(self):
+        self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
+
     def tokenize(self, sent):
         return [ch.lower() for ch in nltk.tokenize.word_tokenize(sent)]
 
@@ -25,20 +28,40 @@ class PreprocessingNltk(Preprocessing):
 class PreprocessingStanford(Preprocessing):
     def __init__(self):
         self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
-
-    def clear(self, word):
-        if word[0] == '#'  and word != '#':
-            return word[1:]
-        return word
+        self._should_merge = True
 
     def tokenize(self, sent):
-        sent = re.sub('#', ' # ', sent)
-        sent = re.sub('_', ' ', sent)
-        res = [ch.lower() for ch in self.tokenizer.tokenize(sent)]
-        return [w for w in res]
+        return self.tokenizer.tokenize(sent)
 
     def name(self):
         return 'StanfordCoreNLPTokenizer'
+
+
+class PreprocessingStanfordLowercase(Preprocessing):
+    def __init__(self):
+        self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
+        self._should_merge = True
+
+    def tokenize(self, sent):
+        return [ch.lower() for ch in self.tokenizer.tokenize(sent)]
+
+    def name(self):
+        return 'StanfordCoreNLPTokenizerLowercase'
+
+
+class PreprocessingStanfordExtra(Preprocessing):
+    def __init__(self):
+        self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
+        self._should_merge = True
+
+    def tokenize(self, sent):
+        sent = re.sub('#', ' ', sent)
+        sent = re.sub('/', ' ', sent)
+        sent = re.sub('_', ' ', sent)
+        return [ch.lower() for ch in self.tokenizer.tokenize(sent)]
+
+    def name(self):
+        return 'StanfordCoreNLPTokenizerExtra'
 
 
 POS_TAGS = ['ADJ', 'ADV', 'PART', 'NOUN', 'PROPN', 'VERB']

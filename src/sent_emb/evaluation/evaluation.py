@@ -11,7 +11,8 @@ from sent_emb.algorithms.seq2seq import autoencoder, autoencoder_with_cosine, co
 from sent_emb.statistics.statistics import all_statistics
 from sent_emb.downloader import downloader
 from sent_emb.evaluation import sts_eval, sts_read
-from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingStanford, PreprocessingSpacy
+from sent_emb.evaluation.preprocessing import PreprocessingNltk, PreprocessingStanford, PreprocessingSpacy,\
+    PreprocessingStanfordLowercase, PreprocessingStanfordExtra
 
 
 # All available evaluation methods.
@@ -47,7 +48,9 @@ EXCLUDED_FROM_TEST = ['S2SAutoencoder', 'S2SAutoencoderWithCosine', 'S2SCosine',
 # All available tokenizers with their constructors.
 TOKENIZERS = {
     'NLTK': PreprocessingNltk,
-    'Stanford': PreprocessingStanford,
+    'StanfordCasing': PreprocessingStanford,
+    'Stanford': PreprocessingStanfordLowercase,
+    'StanfordExtra': PreprocessingStanfordExtra,
     'Spacy': PreprocessingSpacy,
 }
 
@@ -60,7 +63,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--run-mode', help='select run mode of script',
                     choices=RUN_MODES, default='STS')
 parser.add_argument('-t', '--tokenizer', help='select tokenizer',
-                    choices=TOKENIZERS.keys(), default='Stanford')
+                    choices=TOKENIZERS.keys(), default='StanfordExtra')
 parser.add_argument('algorithm', nargs='?', type=str, help='select algorithm to run',
                     choices=ALGORITHMS.keys())
 parser.add_argument('-y', '--year', help='select STS year',
@@ -70,6 +73,7 @@ parser.add_argument('--alg-kwargs', help='specify JSON with kwargs to init metho
 parser.add_argument('--train-kwargs', help='specify JSON with kwargs to improve_model function '
                                            '(for one of S2S models)',
                     default='{}')
+parser.add_argument('--results-filename', help='Filename to store your results.')
 parser.add_argument('--no-train', action='store_true', help='use if no training is necessary')
 args = parser.parse_args()
 
@@ -88,7 +92,8 @@ Script params
     algorithm: {2}
     year: {3}
     alg-kwargs: {4}
-'''.format(args.run_mode, args.tokenizer, args.algorithm, args.year, alg_kwargs)
+    filename: {5}
+'''.format(args.run_mode, args.tokenizer, args.algorithm, args.year, alg_kwargs, args.results_filename)
     print(params_msg)
 
     if args.algorithm is None:
@@ -102,9 +107,9 @@ Script params
     training = not args.no_train
 
     if args.year == '*':
-        sts_eval.eval_sts_all(algorithm, tokenizer, training=training)
+        sts_eval.eval_sts_all(algorithm, tokenizer, name=args.results_filename, training=training)
     else:
-        sts_eval.eval_sts_all(algorithm, tokenizer, [int(args.year)], training=training)
+        sts_eval.eval_sts_all(algorithm, tokenizer, [int(args.year)], name=args.results_filename, training=training)
 
 elif args.run_mode == 'stats':
     params_msg = '''
