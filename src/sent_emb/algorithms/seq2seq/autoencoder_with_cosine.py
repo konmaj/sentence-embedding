@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras import backend as K
-from keras.layers import Input, Dense, GRU, Dot
+from keras.layers import Input, Dense, GRU, Dot, Masking
 from keras.models import Model
 from keras.regularizers import l1
 
@@ -22,6 +22,8 @@ def define_models(word_emb_dim, latent_dim,
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
+    
+    masking = Masking(mask_value=0.0)
 
     enc_gru_regularizer = None if enc_gru_reg_coef is None else l1(enc_gru_reg_coef)
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
@@ -30,7 +32,7 @@ def define_models(word_emb_dim, latent_dim,
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
     for i in range(2):
-        _, state_tmp = encoder_gru(encoder_inputs[i])
+        _, state_tmp = encoder_gru(masking(encoder_inputs[i]))
         encoder_states_h.append(state_tmp)
 
     encoder_model = Model(encoder_inputs[0], encoder_states_h[0])
