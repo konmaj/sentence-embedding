@@ -10,9 +10,9 @@ from sent_emb.algorithms.glove_embeddings_mean import GloveMean
 POS_TAGS = ['ADJ', 'ADP', 'ADV', 'CONJ', 'NOUN', 'PRON', 'PROPN', 'VERB']
 N_TAGS = len(POS_TAGS)
 
+
 class GlovePosMean(BaseAlgorithm):
-    def __init__(self, unknown=UnknownVector(300),
-                 tag_groups=[(POS_TAGS, 1), (['NOUN', 'VERB'], 0.5)],
+    def __init__(self, tag_groups=[(POS_TAGS, 1), (['NOUN', 'VERB'], 0.5)],
                  simple_mean_coeff=0.01):
         """
         :param tag_groups: list of pairs (tags list, weight)
@@ -24,8 +24,12 @@ class GlovePosMean(BaseAlgorithm):
         """
         self.tag_groups = tag_groups
         self.simple_mean_coeff = simple_mean_coeff
+
+        unknown_str = 'average'
+        unknown = UnknownVector(300)
         self.word_embeddings = GloVe(unknown)
-        self.simple_mean = GloveMean(unknown)
+        self.simple_mean = GloveMean(unknown_str)
+
         self.nlp = spacy.load('en')
 
     def get_resources(self, dataset):
