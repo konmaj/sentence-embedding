@@ -2,9 +2,10 @@ import numpy as np
 
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Input, GRU, Dot
+from keras.layers import Input, GRU, Dot, Masking
+from keras.regularizers import l1
 
-from sent_emb.algorithms.glove_utility import GloVeSmall
+from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
 from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
 from sent_emb.evaluation.model import get_gold_standards
@@ -13,18 +14,27 @@ from sent_emb.evaluation.model import get_gold_standards
 BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim):
+def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurrent_dropout=0.0,
+                  recurrent_activation='hard_sigmoid', masking=False):
     K.set_learning_phase(1)
 
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
-    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU')
+    
+    masking_layer = Masking(mask_value=0.0)
+
+    regularizer = None if reg_coef is None else l1(reg_coef)
+    encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
+                      recurrent_regularizer=regularizer,
+                      dropout=dropout, recurrent_dropout=recurrent_dropout,
+                      recurrent_activation=recurrent_activation)
 
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
     for i in range(2):
-        _, state_tmp = encoder_gru(encoder_inputs[i])
+        _, state_tmp = encoder_gru(masking_layer(encoder_inputs[i]) if masking
+                                   else encoder_inputs[i])
         encoder_states_h.append(state_tmp)
 
     encoder_model = Model(encoder_inputs[0], encoder_states_h[0])
@@ -39,8 +49,8 @@ def define_models(word_emb_dim, latent_dim):
     return complete_model, encoder_model
 
 
-def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
-    complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
+def prepare_models(name, word_emb_dim, latent_dim, force_load=True, **kwargs):
+    complete_model, encoder_model = define_models(word_emb_dim, latent_dim, **kwargs)
 
     load_model_weights(name, complete_model, encoder_model, force_load=force_load)
 
@@ -55,7 +65,10 @@ class Cosine(Seq2Seq):
     of similarity between pairs of sentences.
     """
 
-    def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
+                 reg_coef=None, loss='mean_squared_error', optimizer='rmsprop',
+                 dropout=0.0, recurrent_dropout=0.0, glove_dim=50,
+                 recurrent_activation='hard_sigmoid', masking=False):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -66,16 +79,24 @@ class Cosine(Seq2Seq):
 
         latent_dim: latent dimensionality of the encoding space.
         """
-        super().__init__(GloVeSmall(), latent_dim)
+        if glove_dim == 50:
+            super().__init__(GloVeSmall(), latent_dim)
+        elif glove_dim == 300:
+            super().__init__(GloVe(), latent_dim)
+        else:
+            assert False
 
         self.name = name
         self.force_load = force_load
 
         self.complete_model, self.encoder_model = \
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load)
+                           force_load=force_load, reg_coef=reg_coef,
+                           dropout=dropout, recurrent_dropout=recurrent_dropout,
+                           recurrent_activation=recurrent_activation,
+                           masking=masking)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+        self.complete_model.compile(optimizer=optimizer, loss=loss)
 
         self._check_members_presence()
 
