@@ -5,8 +5,8 @@ from sent_emb.algorithms.simpleSVD import SimpleSVD, ExternalProbFocusUnknown, E
 
 
 class FastTextMean(WordVectorsMean):
-    def __init__(self, length='normal'):
-        if length == 'nothing':
+    def __init__(self, length='original'):
+        if length == 'original':
             self.word_embeddings = FastText()
         elif length == 'glove':
             self.word_embeddings = FastTextWithGloVeLength()
