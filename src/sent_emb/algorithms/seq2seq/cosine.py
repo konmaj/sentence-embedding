@@ -15,14 +15,14 @@ BATCH_SIZE = 2 ** 8  # Batch size for training.
 
 
 def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurrent_dropout=0.0,
-                  recurrent_activation='hard_sigmoid'):
+                  recurrent_activation='hard_sigmoid', masking=False):
     K.set_learning_phase(1)
 
     # Define the encoder.
     encoder_inputs = [Input(shape=(None, word_emb_dim), name='encoder_input_sent{}'.format(i))
                       for i in range(2)]
     
-    masking = Masking(mask_value=0.0)
+    masking_layer = Masking(mask_value=0.0)
 
     regularizer = None if reg_coef is None else l1(reg_coef)
     encoder_gru = GRU(latent_dim, return_state=True, name='encoder_GRU',
@@ -33,7 +33,8 @@ def define_models(word_emb_dim, latent_dim, reg_coef=None, dropout=0.0, recurren
     # Get encoder hidden states - sentence embeddings.
     encoder_states_h = []
     for i in range(2):
-        _, state_tmp = encoder_gru(masking(encoder_inputs[i]))
+        _, state_tmp = encoder_gru(masking_layer(encoder_inputs[i]) if masking
+                                   else encoder_inputs[i])
         encoder_states_h.append(state_tmp)
 
     encoder_model = Model(encoder_inputs[0], encoder_states_h[0])
@@ -67,7 +68,7 @@ class Cosine(Seq2Seq):
     def __init__(self, name='s2s_cos_g50_sts1215_d100', force_load=True, latent_dim=100,
                  reg_coef=None, loss='mean_squared_error', optimizer='rmsprop',
                  dropout=0.0, recurrent_dropout=0.0, glove_dim=50,
-                 recurrent_activation='hard_sigmoid'):
+                 recurrent_activation='hard_sigmoid', masking=False):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -92,7 +93,8 @@ class Cosine(Seq2Seq):
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
                            force_load=force_load, reg_coef=reg_coef,
                            dropout=dropout, recurrent_dropout=recurrent_dropout,
-                           recurrent_activation=recurrent_activation)
+                           recurrent_activation=recurrent_activation,
+                           masking=masking)
 
         self.complete_model.compile(optimizer=optimizer, loss=loss)
 
