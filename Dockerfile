@@ -3,7 +3,7 @@ FROM python:3
 # Adding Java
 RUN echo "deb http://http.debian.net/debian jessie-backports main" >> /etc/apt/sources.list
 RUN apt-get update
-RUN apt-get install -t jessie-backports  -y openjdk-8-jre
+RUN apt-get install -y openjdk-8-jre
 
 # Stanford CoreNLP configuration
 ENV STANFORD_DIR="/opt/resources/stanford"
