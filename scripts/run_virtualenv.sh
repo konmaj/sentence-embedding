@@ -22,7 +22,7 @@ pip3 install -r "${REQ_DIR}/1_math.txt"
 pip3 install -r "${REQ_DIR}/2_nlp.txt"
 pip3 install -r "${REQ_DIR}/3_ml.txt"
 pip3 install -r "${REQ_DIR}/4_other.txt"
-pip3 install tensorflow-gpu==1.6.0
+pip3 install tensorflow-gpu==1.5.0
 
 python3.5 -c "import nltk; nltk.download('punkt')"
 

@@ -39,7 +39,7 @@ class UnknownVector(Unknown):
         self.count += 1
 
     def get(self, word):
-        print(word)
+        #print(word)
         return self.v / self.count
 
 

@@ -51,7 +51,8 @@ class PreprocessingStanfordLowercase(Preprocessing):
 
 class PreprocessingStanfordExtra(Preprocessing):
     def __init__(self):
-        self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer()
+        jar = '/home/michal/Projekty/sentence-embedding/resources/stanford/stanford-postagger-full-2015-04-20/stanford-postagger.jar'
+        self.tokenizer = nltk.tokenize.stanford.StanfordTokenizer(jar)
         self._should_merge = True
 
     def tokenize(self, sent):
