@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense
+from keras.layers import GRU, Dense, Masking
 
 from sent_emb.algorithms.glove_utility import GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
@@ -15,8 +15,9 @@ def define_models(word_emb_dim, latent_dim):
 
     # Define the encoder
     encoder_inputs = Input(shape=(None, word_emb_dim))
+    encoder_mask = Masking()
     encoder = GRU(latent_dim, return_state=True)
-    encoder_outputs, state_h = encoder(encoder_inputs)
+    encoder_outputs, state_h = encoder(encoder_mask(encoder_inputs))
 
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h]
@@ -51,7 +52,7 @@ class Autoencoder(Seq2Seq):
     This algorithm uses autoencoding neural net based on seq2seq architecture.
     """
 
-    def __init__(self, name='s2s_gru_g50_sts1215', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_autoencoder', force_load=True, latent_dim=100):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
