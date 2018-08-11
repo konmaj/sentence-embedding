@@ -3,7 +3,7 @@ import numpy as np
 from keras import Input, Model
 from keras.layers import GRU, Dense, Masking
 
-from sent_emb.algorithms.glove_utility import GloVeSmall
+from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
 from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
 
@@ -52,7 +52,7 @@ class Autoencoder(Seq2Seq):
     This algorithm uses autoencoding neural net based on seq2seq architecture.
     """
 
-    def __init__(self, name='s2s_autoencoder', force_load=True, latent_dim=100):
+    def __init__(self, name='s2s_autoencoder', force_load=True, glove_dim=50, latent_dim=100):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -63,7 +63,10 @@ class Autoencoder(Seq2Seq):
 
         latent_dim: latent dimensionality of the encoding space.
         """
-        super(Autoencoder, self).__init__(GloVeSmall(), latent_dim)
+        if glove_dim=50:
+            super(Autoencoder, self).__init__(GloVeSmall(), latent_dim)
+        else:
+            super(Autoencoder, self).__init__(GloVe(), latent_dim)
 
         self.name = name
         self.force_load = force_load
