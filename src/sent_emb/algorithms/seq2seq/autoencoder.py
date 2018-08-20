@@ -77,7 +77,7 @@ class Autoencoder(Seq2Seq):
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
                            force_load=force_load)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+        self.complete_model.compile(optimizer='sgd', loss='mean_squared_error')
 
         self._check_members_presence()
 

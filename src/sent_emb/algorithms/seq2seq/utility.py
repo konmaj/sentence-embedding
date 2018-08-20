@@ -1,14 +1,17 @@
 from abc import abstractmethod
 
 import keras
+import nltk
 import tensorflow as tf
 
 from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sents
 
-from sent_emb.evaluation.model import BaseAlgorithm
+from sent_emb.evaluation.model import BaseAlgorithm, zip_sent_pairs_with_gs, SentPair
 from sent_emb.evaluation.sts_eval import eval_sts_all
-from sent_emb.evaluation.sts_read import STS, read_train_set
+from sent_emb.evaluation.sts_read import STS, read_train_set, tokens
+
+from nltk.corpus import brown
 
 WEIGHTS_PATH = OTHER_RESOURCES_DIR.joinpath('seq2seq', 'weights')
 
@@ -128,6 +131,23 @@ class Seq2Seq(BaseAlgorithm):
         self.word_embedding.get_resources(dataset)
 
 
+def read_corpus(tokenizer):
+    nltk.download('brown')
+
+    raw_sents = [' '.join(sent) for sent in brown.sents()]
+    print(raw_sents[0])
+
+    sents = tokens(tokenizer, raw_sents)
+    print(sents[0])
+
+    sent_pairs = [SentPair(sent, sent) for sent in sents]
+
+    gs_sents = zip_sent_pairs_with_gs(sent_pairs, [0] * len(sent_pairs))
+    print(gs_sents[0])
+
+    return gs_sents
+
+
 def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None):
     """
     Runs training of Seq2Seq `algorithm` on STS16 training set.
@@ -148,7 +168,12 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None):
 
     print('Reading training set...')
     sent_pairs = read_train_set(16, tokenizer)
+    print(sent_pairs[0])
+    print('Reading additional corpus...')
+    corpus = read_corpus(tokenizer)
+    sent_pairs = sent_pairs + corpus
     print('...done.')
+
 
     if eval_interval is None:
         algorithm.improve_weights(sent_pairs, epochs)
