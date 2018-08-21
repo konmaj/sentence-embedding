@@ -17,7 +17,7 @@ def define_models(word_emb_dim, latent_dim):
     # Define the encoder
     encoder_inputs = Input(shape=(None, word_emb_dim))
     encoder_mask = Masking()
-    encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.00))
+    encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
     encoder_outputs, state_h = encoder(encoder_mask(encoder_inputs))
 
     # We discard `encoder_outputs` and only keep the states.
@@ -27,7 +27,7 @@ def define_models(word_emb_dim, latent_dim):
     # Set up the decoder, using `encoder_states` as initial state.
     decoder_inputs = Input(shape=(None, word_emb_dim))
 
-    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.00))
+    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
     decoder_outputs, _ = decoder_gru(decoder_inputs,
                                      initial_state=encoder_states)
     decoder_dense = Dense(word_emb_dim, activation='linear')
@@ -77,7 +77,7 @@ class Autoencoder(Seq2Seq):
             prepare_models(name, self.word_embedding.get_dim(), latent_dim,
                            force_load=force_load)
 
-        self.complete_model.compile(optimizer='sgd', loss='mean_squared_error')
+        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
 
         self._check_members_presence()
 

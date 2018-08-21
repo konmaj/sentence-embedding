@@ -148,7 +148,7 @@ def read_corpus(tokenizer):
     return gs_sents
 
 
-def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None):
+def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus=False):
     """
     Runs training of Seq2Seq `algorithm` on STS16 training set.
 
@@ -169,16 +169,17 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None):
     print('Reading training set...')
     sent_pairs = read_train_set(16, tokenizer)
     print(sent_pairs[0])
-    print('Reading additional corpus...')
-    corpus = read_corpus(tokenizer)
-    sent_pairs = sent_pairs + corpus
+    if add_corpus:
+        print('Reading additional corpus...')
+        corpus = read_corpus(tokenizer)
+        sent_pairs = corpus
     print('...done.')
 
 
     if eval_interval is None:
         algorithm.improve_weights(sent_pairs, epochs)
     else:
-        years_to_eval = [15, 16]
+        years_to_eval = [12, 13, 14, 15, 16]
 
         completed_epochs = 0
         for interval in eval_interval:
