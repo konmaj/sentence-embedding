@@ -1,18 +1,18 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense, Masking
+from keras.layers import GRU, Dense, Masking, LSTM
 from keras.regularizers import l1_l2
 
 from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
-from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights)
+from sent_emb.algorithms.seq2seq.utility import (Seq2Seq, load_model_weights, save_model_weights, get_words)
 
 
-BATCH_SIZE = 2**8  # Batch size for training.
+BATCH_SIZE = 2**9  # Batch size for training.
 
 
-def define_models(word_emb_dim, latent_dim):
+def define_models(word_emb_dim, latent_dim, words):
 
     # Define the encoder
     encoder_inputs = Input(shape=(None, word_emb_dim))
@@ -24,24 +24,28 @@ def define_models(word_emb_dim, latent_dim):
     encoder_states = [state_h]
     encoder_model = Model(encoder_inputs, encoder_states)
 
-    # Set up the decoder, using `encoder_states` as initial state.
-    decoder_inputs = Input(shape=(None, word_emb_dim))
 
-    decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
-    decoder_outputs, _ = decoder_gru(decoder_inputs,
-                                     initial_state=encoder_states)
-    decoder_dense = Dense(word_emb_dim, activation='linear')
-    decoder_outputs = decoder_dense(decoder_outputs)
+    # Set up the decoder, using `encoder_states` as initial state.
+    # decoder_inputs = Input(shape=(None, word_emb_dim))
+    #
+    # decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
+    # decoder_outputs, _ = decoder_gru(decoder_inputs,
+    #                                  initial_state=encoder_states)
+    # decoder_dense = Dense(word_emb_dim, activation='linear')
+    # decoder_outputs = decoder_dense(decoder_outputs)
+
+    decoder_bow = Dense(words)(encoder_outputs)
+
 
     # Define complete model, which will be trained later.
-    complete_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+    complete_model = Model([encoder_inputs], [decoder_bow])
     complete_model.summary()
 
     return complete_model, encoder_model
 
 
-def prepare_models(name, word_emb_dim, latent_dim, force_load=True):
-    complete_model, encoder_model = define_models(word_emb_dim, latent_dim)
+def prepare_models(name, word_emb_dim, latent_dim, words, force_load=True):
+    complete_model, encoder_model = define_models(word_emb_dim, latent_dim, words)
 
     load_model_weights(name, complete_model, encoder_model, force_load=force_load)
 
@@ -53,7 +57,7 @@ class Autoencoder(Seq2Seq):
     This algorithm uses autoencoding neural net based on seq2seq architecture.
     """
 
-    def __init__(self, name='s2s_autoencoder', force_load=True, glove_dim=50, latent_dim=100, flip=True):
+    def __init__(self, name='s2s_autoencoder', force_load=True, glove_dim=50, latent_dim=100, flip=True, word_frac=0.9):
         """
         Constructs Seq2Seq model and optionally loads saved state of the model from disk.
 
@@ -70,21 +74,45 @@ class Autoencoder(Seq2Seq):
             super(Autoencoder, self).__init__(GloVe(), latent_dim)
 
         self.name = name
+        self.latent_dim = latent_dim
         self.force_load = force_load
         self.flip = flip
 
+        self.vectorizer = None
+        self.word_frac = word_frac
+
+        self.encoder_model = None
+        self.complete_model = None
+        # self.build_model()
+
+        # self._check_members_presence()
+
+    def build_model(self, words):
+        print("build...")
         self.complete_model, self.encoder_model = \
-            prepare_models(name, self.word_embedding.get_dim(), latent_dim,
-                           force_load=force_load)
+            prepare_models(self.name, self.word_embedding.get_dim(), self.latent_dim,
+                           words=words, force_load=self.force_load)
 
         self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
 
-        self._check_members_presence()
 
     def improve_weights(self, sent_pairs, epochs, **kwargs):
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs, self.word_embedding)
+        first_sents = [' '.join(gs.sent1) for gs in sent_pairs]
 
-        sents_vec = np.concatenate([first_sents_vec, second_sents_vec])
+        # only for STS data
+        # sents_vec = np.concatenate([first_sents_vec, second_sents_vec])
+        sents_vec = first_sents_vec
+
+        if self.complete_model is None:
+            print("Building model...")
+            self.vectorizer = get_words(sent_pairs, self.word_frac)
+            words_count = len(self.vectorizer.vocabulary_)
+            self.build_model(words_count)
+            print("...done")
+
+        bow_target_data = self.vectorizer.transform(first_sents).todense()
+        print(bow_target_data.shape)
 
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
@@ -97,10 +125,7 @@ class Autoencoder(Seq2Seq):
 
         decoder_target_data = np.copy(decoder_input_data)
 
-        # if self.flip:
-        #     encoder_input_data = np.flip(encoder_input_data, axis=1)
-
-        self.complete_model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+        self.complete_model.fit(x=encoder_input_data, y=bow_target_data,
                                 batch_size=BATCH_SIZE, epochs=epochs)
 
         save_model_weights(self.name, self.complete_model, self.encoder_model)

@@ -1,8 +1,10 @@
 from abc import abstractmethod
 
+import numpy as np
 import keras
 import nltk
 import tensorflow as tf
+from sklearn.feature_extraction.text import CountVectorizer
 
 from sent_emb.algorithms.path_utility import OTHER_RESOURCES_DIR
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sents
@@ -148,6 +150,25 @@ def read_corpus(tokenizer):
     return gs_sents
 
 
+def get_words(sents, frac):
+    sents = [gs.sent1 for gs in sents] + [gs.sent2 for gs in sents]
+    # print(sents[:5])
+    print("Flat text size:", len(sents)*len(sents[0]))
+
+    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b")
+    vectorizer.fit([' '.join(sent) for sent in sents])
+
+    voc = len(vectorizer.vocabulary_)
+    print("Vocabulary size:", voc)
+
+    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac))
+    vectorizer.fit([' '.join(sent) for sent in sents])
+
+    print("Final vocabulary:", len(vectorizer.vocabulary_))
+
+    return vectorizer
+
+
 def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus=False):
     """
     Runs training of Seq2Seq `algorithm` on STS16 training set.
@@ -175,11 +196,10 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
         sent_pairs = corpus
     print('...done.')
 
-
     if eval_interval is None:
         algorithm.improve_weights(sent_pairs, epochs)
     else:
-        years_to_eval = [12, 13, 14, 15, 16]
+        years_to_eval = [15, 16]
 
         completed_epochs = 0
         for interval in eval_interval:
