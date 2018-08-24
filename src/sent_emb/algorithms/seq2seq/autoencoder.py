@@ -27,14 +27,17 @@ def define_models(word_emb_dim, latent_dim, words):
 
     # Set up the decoder, using `encoder_states` as initial state.
     # decoder_inputs = Input(shape=(None, word_emb_dim))
-    #
+
     # decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
     # decoder_outputs, _ = decoder_gru(decoder_inputs,
     #                                  initial_state=encoder_states)
     # decoder_dense = Dense(word_emb_dim, activation='linear')
     # decoder_outputs = decoder_dense(decoder_outputs)
 
-    decoder_bow = Dense(words)(encoder_outputs)
+
+    # Surprisingly, linear activation with mean_squared_error loss work best
+    # Possibly 0.0002 is too high
+    decoder_bow = Dense(words, activation='linear', kernel_regularizer=l1_l2(0.00, 0.0002))(encoder_outputs)
 
 
     # Define complete model, which will be trained later.
@@ -112,7 +115,6 @@ class Autoencoder(Seq2Seq):
             print("...done")
 
         bow_target_data = self.vectorizer.transform(first_sents).todense()
-        print(bow_target_data.shape)
 
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
