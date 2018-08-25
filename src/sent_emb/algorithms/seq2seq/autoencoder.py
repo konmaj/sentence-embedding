@@ -13,7 +13,6 @@ BATCH_SIZE = 2**9  # Batch size for training.
 
 
 def define_models(word_emb_dim, latent_dim, words):
-
     # Define the encoder
     encoder_inputs = Input(shape=(None, word_emb_dim))
     encoder_mask = Masking()
@@ -26,22 +25,25 @@ def define_models(word_emb_dim, latent_dim, words):
 
 
     # Set up the decoder, using `encoder_states` as initial state.
-    # decoder_inputs = Input(shape=(None, word_emb_dim))
+    decoder_inputs = Input(shape=(None, word_emb_dim))
 
-    # decoder_gru = GRU(latent_dim, return_sequences=True, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
-    # decoder_outputs, _ = decoder_gru(decoder_inputs,
-    #                                  initial_state=encoder_states)
-    # decoder_dense = Dense(word_emb_dim, activation='linear')
-    # decoder_outputs = decoder_dense(decoder_outputs)
+    decoder_gru = GRU(latent_dim, return_sequences=True,
+                      return_state=True, recurrent_regularizer=l1_l2(0.00, 0.0005))
+    decoder_outputs, _ = decoder_gru(decoder_inputs,
+                                     initial_state=encoder_states)
+    decoder_dense = Dense(word_emb_dim, activation='linear', name='embeddings')
+    decoder_outputs = decoder_dense(decoder_outputs)
 
 
     # Surprisingly, linear activation with mean_squared_error loss work best
     # Possibly 0.0002 is too high
-    decoder_bow = Dense(words, activation='linear', kernel_regularizer=l1_l2(0.00, 0.0002))(encoder_outputs)
+    decoder_bow = Dense(words, activation='linear',
+                        kernel_regularizer=l1_l2(0.00, 0.001),
+                        name='BOW')(encoder_outputs)
 
 
     # Define complete model, which will be trained later.
-    complete_model = Model([encoder_inputs], [decoder_bow])
+    complete_model = Model([encoder_inputs, decoder_inputs], [decoder_outputs, decoder_bow])
     complete_model.summary()
 
     return complete_model, encoder_model
@@ -96,7 +98,8 @@ class Autoencoder(Seq2Seq):
             prepare_models(self.name, self.word_embedding.get_dim(), self.latent_dim,
                            words=words, force_load=self.force_load)
 
-        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error')
+        self.complete_model.compile(optimizer='rmsprop', loss='mean_squared_error',
+                                    loss_weights=[0.1, 1.])
 
 
     def improve_weights(self, sent_pairs, epochs, **kwargs):
@@ -127,7 +130,7 @@ class Autoencoder(Seq2Seq):
 
         decoder_target_data = np.copy(decoder_input_data)
 
-        self.complete_model.fit(x=encoder_input_data, y=bow_target_data,
+        self.complete_model.fit(x=[encoder_input_data, decoder_input_data], y=[decoder_target_data, bow_target_data],
                                 batch_size=BATCH_SIZE, epochs=epochs)
 
         save_model_weights(self.name, self.complete_model, self.encoder_model)

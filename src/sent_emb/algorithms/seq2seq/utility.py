@@ -200,6 +200,7 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
         algorithm.improve_weights(sent_pairs, epochs)
     else:
         years_to_eval = [15, 16]
+        # years_to_eval = [12, 13, 14, 15, 16]
 
         completed_epochs = 0
         for interval in eval_interval:
