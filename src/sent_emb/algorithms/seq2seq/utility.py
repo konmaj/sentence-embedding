@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-import numpy as np
+import pickle
 import keras
 import nltk
 import tensorflow as tf
@@ -13,7 +13,7 @@ from sent_emb.evaluation.model import BaseAlgorithm, zip_sent_pairs_with_gs, Sen
 from sent_emb.evaluation.sts_eval import eval_sts_all
 from sent_emb.evaluation.sts_read import STS, read_train_set, tokens
 
-from nltk.corpus import brown
+from nltk.corpus import brown, webtext, reuters
 
 WEIGHTS_PATH = OTHER_RESOURCES_DIR.joinpath('seq2seq', 'weights')
 
@@ -133,16 +133,47 @@ class Seq2Seq(BaseAlgorithm):
         self.word_embedding.get_resources(dataset)
 
 
-def read_corpus(tokenizer):
-    nltk.download('brown')
+def process_corpus(corp, tokenizer):
+    sent_pairs = []
 
-    raw_sents = [' '.join(sent) for sent in brown.sents()]
-    print(raw_sents[0])
+    raw_sents = []
+    for id in corp.fileids():
+        raw_sents += [' '.join(sent) for sent in corp.sents(id)]
+    print("Sentences fetched")
 
     sents = tokens(tokenizer, raw_sents)
-    print(sents[0])
 
-    sent_pairs = [SentPair(sent, sent) for sent in sents]
+    base = 0
+
+    for id in corp.fileids():
+        for i in range(1, len(corp.sents(id)) - 1):
+            sent_pairs.append(SentPair(sents[base + i], (sents[base + i - 1], sents[base + i + 1])))
+        base += len(corp.sents(id))
+
+    print("Sentences tokenized")
+
+    return sent_pairs
+
+
+def read_corpus(tokenizer):
+    nltk.download('brown')
+    # nltk.download('webtext')
+    nltk.download('reuters')
+
+    sent_pairs = []
+
+    for corp in [brown]:
+        sent_pairs += process_corpus(corp, tokenizer)
+
+    print("Corpus ready")
+
+    # raw_sents += [' '.join(sent) for sent in webtext.sents()]
+    # print(raw_sents[0])
+
+    # sents = tokens(tokenizer, raw_sents)
+    # print(sents[0])
+
+    # sent_pairs = [SentPair(sent, sent) for sent in sents]
 
     gs_sents = zip_sent_pairs_with_gs(sent_pairs, [0] * len(sent_pairs))
     print(gs_sents[0])
@@ -151,7 +182,7 @@ def read_corpus(tokenizer):
 
 
 def get_words(sents, frac):
-    sents = [gs.sent1 for gs in sents] + [gs.sent2 for gs in sents]
+    sents = [gs.sent1 for gs in sents]# + [gs.sent2 for gs in sents]
     # print(sents[:5])
     print("Flat text size:", len(sents)*len(sents[0]))
 
@@ -188,18 +219,26 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
     algorithm.get_resources(STS(tokenizer))
 
     print('Reading training set...')
-    sent_pairs = read_train_set(16, tokenizer)
-    print(sent_pairs[0])
+    sent_pairs = []
+    # sent_pairs = read_train_set(16, tokenizer)
+    # print(sent_pairs[0])
     if add_corpus:
         print('Reading additional corpus...')
-        corpus = read_corpus(tokenizer)
+        fname = 'corp_4.dat'
+        try:
+            with open(fname, 'rb') as f:
+                corpus = pickle.load(f)
+        except FileNotFoundError:
+            corpus = read_corpus(tokenizer)
+            with open(fname, 'wb') as f:
+                pickle.dump(corpus, f)
         sent_pairs = corpus
     print('...done.')
 
     if eval_interval is None:
         algorithm.improve_weights(sent_pairs, epochs)
     else:
-        years_to_eval = [15, 16]
+        years_to_eval = [12, 15]
         # years_to_eval = [12, 13, 14, 15, 16]
 
         completed_epochs = 0
