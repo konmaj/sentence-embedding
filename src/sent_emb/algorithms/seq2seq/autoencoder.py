@@ -1,8 +1,9 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense, Masking, LSTM
+from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda
 from keras.regularizers import l1_l2
+from keras import backend as K
 
 from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
 from sent_emb.algorithms.seq2seq.preprocessing import preprocess_sent_pairs
@@ -14,14 +15,17 @@ BATCH_SIZE = 2**9  # Batch size for training.
 
 def define_models(word_emb_dim, latent_dim, words):
     # Define the encoder
-    encoder_inputs = Input(shape=(None, word_emb_dim))
+    encoder_inputs = [Input(shape=(None, word_emb_dim)) for _ in range(2)]
     encoder_mask = Masking()
     encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
-    encoder_outputs, state_h = encoder(encoder_mask(encoder_inputs))
+
+    encoder_outputs, state_h   = encoder(encoder_mask(encoder_inputs[0]))
+    _,               state_h_2 = encoder(encoder_mask(encoder_inputs[1]))
+    state_h_2 = Lambda(lambda  x: K.l2_normalize(x,axis=1))(state_h_2)
 
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h]
-    encoder_model = Model(encoder_inputs, encoder_states)
+    encoder_model = Model(encoder_inputs[0], encoder_states)
 
 
     # # Set up the decoder, using `encoder_states` as initial state.
@@ -54,10 +58,11 @@ def define_models(word_emb_dim, latent_dim, words):
     decoder_next_emb = Dense(word_emb_dim, activation='linear',
                              kernel_regularizer=l1_l2(0.00, 0.001),
                              name='next_embedding')(encoder_outputs)
+    next_emb_diff = Subtract()([decoder_next_emb, state_h])
 
 
     # Define complete model, which will be trained later.
-    complete_model = Model([encoder_inputs], [decoder_bow, decoder_next_emb])
+    complete_model = Model(encoder_inputs, [decoder_bow, next_emb_diff])
     complete_model.summary()
 
     return complete_model, encoder_model
@@ -138,7 +143,8 @@ class Autoencoder(Seq2Seq):
         bow_target_data = self.vectorizer.transform(first_sents).todense()
         # prev_target_data = self.vectorizer.transform(second_sents).todense()
         # next_target_data = self.vectorizer.transform(third_sents).todense()
-        next_emb_data = self.encoder_model.predict(x=[second_sents_vec], batch_size=BATCH_SIZE)
+        # next_emb_data = self.encoder_model.predict(x=[second_sents_vec], batch_size=BATCH_SIZE)
+        next_emb_diff_data = np.zeros((sents_vec.shape[0], sents_vec.shape[2]))
 
         print("Shape of sentences after preprocessing:", sents_vec.shape)
 
@@ -151,7 +157,7 @@ class Autoencoder(Seq2Seq):
 
         decoder_target_data = np.copy(decoder_input_data)
 
-        self.complete_model.fit(x=[encoder_input_data], y=[bow_target_data, next_emb_data],
+        self.complete_model.fit(x=[encoder_input_data, second_sents_vec], y=[bow_target_data, next_emb_diff_data],
                                 batch_size=BATCH_SIZE, epochs=epochs)
 
         save_model_weights(self.name, self.complete_model, self.encoder_model)
