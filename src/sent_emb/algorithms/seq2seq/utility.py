@@ -192,7 +192,7 @@ def get_words(sents, frac):
     voc = len(vectorizer.vocabulary_)
     print("Vocabulary size:", voc)
 
-    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac))
+    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac), max_df=0.05)
     vectorizer.fit([' '.join(sent) for sent in sents])
 
     print("Final vocabulary:", len(vectorizer.vocabulary_))
