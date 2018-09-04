@@ -50,10 +50,20 @@ def generate_similarity_file(algorithm, input_path, output_path, tokenizer):
     """
     # read test data
     sent_pairs = read_sts_input(input_path, tokenizer)
+
     sents = flatten_sent_pairs(sent_pairs)
+    sent_lab = [(sents[i], i) for i in range(len(sents))]
+    sent_lab.sort(key=lambda s: len(s[0]))
+    sents = [sent[0] for sent in sent_lab]
+    labs = [sent[1] for sent in sent_lab]
+    # print('eval', sent_pairs[:5])
 
     # compute embeddings
     embs = algorithm.transform(sents)
+    embs = [(embs[i], labs[i]) for i in range(len(embs))]
+    embs.sort(key=lambda e: e[1])
+    embs = np.array([emb[0] for emb in embs])
+    # print(embs)
     assert len(embs) == len(sents)
 
     # generate similarities between pairs of sentences

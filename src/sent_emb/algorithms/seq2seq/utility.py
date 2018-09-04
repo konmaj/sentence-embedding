@@ -13,7 +13,7 @@ from sent_emb.evaluation.model import BaseAlgorithm, zip_sent_pairs_with_gs, Sen
 from sent_emb.evaluation.sts_eval import eval_sts_all
 from sent_emb.evaluation.sts_read import STS, read_train_set, tokens
 
-from nltk.corpus import brown, webtext, reuters
+from nltk.corpus import brown, webtext, reuters, BNCCorpusReader
 
 WEIGHTS_PATH = OTHER_RESOURCES_DIR.joinpath('seq2seq', 'weights')
 
@@ -147,7 +147,8 @@ def process_corpus(corp, tokenizer):
 
     for id in corp.fileids():
         for i in range(1, len(corp.sents(id)) - 1):
-            sent_pairs.append(SentPair(sents[base + i], (sents[base + i - 1], sents[base + i + 1])))
+            # sent_pairs.append(SentPair(sents[base + i], (sents[base + i - 1], sents[base + i + 1])))
+            sent_pairs.append(SentPair(sents[base + i], sents[base + i + 1]))
         base += len(corp.sents(id))
 
     print("Sentences tokenized")
@@ -157,8 +158,10 @@ def process_corpus(corp, tokenizer):
 
 def read_corpus(tokenizer):
     nltk.download('brown')
-    # nltk.download('webtext')
+    nltk.download('webtext')
     nltk.download('reuters')
+    # bnc = BNCCorpusReader(root="../../sentence-embedding/resources/other/2554/download/Texts",
+    #                              fileids=r'[A-K]/\w*/\w*\.xml')
 
     sent_pairs = []
 
@@ -182,7 +185,7 @@ def read_corpus(tokenizer):
 
 
 def get_words(sents, frac):
-    sents = [gs.sent1 for gs in sents]# + [gs.sent2 for gs in sents]
+    sents = [gs.sent1 for gs in sents] + [gs.sent2 for gs in sents]
     # print(sents[:5])
     print("Flat text size:", len(sents)*len(sents[0]))
 
@@ -192,7 +195,8 @@ def get_words(sents, frac):
     voc = len(vectorizer.vocabulary_)
     print("Vocabulary size:", voc)
 
-    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac), max_df=0.05)
+    # vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac), max_df=0.05)
+    vectorizer = CountVectorizer(binary=True, token_pattern=r"\b\w+\b", max_features=int(voc*frac))
     vectorizer.fit([' '.join(sent) for sent in sents])
 
     print("Final vocabulary:", len(vectorizer.vocabulary_))
@@ -224,7 +228,7 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
     # print(sent_pairs[0])
     if add_corpus:
         print('Reading additional corpus...')
-        fname = 'corp_4.dat'
+        fname = 'corp_1.dat'
         try:
             with open(fname, 'rb') as f:
                 corpus = pickle.load(f)

@@ -65,6 +65,8 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
     """
     assert 0 <= cut_rate <= 1
 
+    # sents_vec.sort(key = lambda s: len(s))
+
     sent_lengths = sorted([len(sent) for sent in sents_vec])
     num_encoder_words = sent_lengths[int(math.ceil(cut_rate * len(sent_lengths)))]
 
@@ -78,7 +80,7 @@ def align_sents(sents_vec, padding_vec, cut_rate=0.8):
     return sents_vec
 
 
-def preprocess_sents(sents, word_embedding):
+def preprocess_sents(sents, word_embedding, rand=0.0):
     """
     Prepares sentences to be put into Seq2Seq neural net.
 
@@ -89,6 +91,10 @@ def preprocess_sents(sents, word_embedding):
     returns: numpy 3-D array of floats, which represents list of sentences of vectorized words
     """
     sents_vec = replace_with_embs(sents, word_embedding)
+    # print(sents_vec[:5])
+    # for si in range(len(sents_vec)):
+    #     for wi in range(len(sents_vec[si])):
+    #         sents_vec[si][wi] += np.random.rand(sents_vec[si][wi].shape[0]) * rand
 
     padding_vec = np.zeros(word_embedding.get_dim(), dtype=np.float)
     aligned_sents = align_sents(sents_vec, padding_vec)
@@ -96,7 +102,7 @@ def preprocess_sents(sents, word_embedding):
     return np.array(aligned_sents, dtype=np.float)
 
 
-def preprocess_sent_pairs(sent_pairs, word_embedding):
+def preprocess_sent_pairs(sent_pairs, word_embedding, rand=0.0):
     """
     Prepares pairs of sentences to be put into Seq2Seq neural net.
 
@@ -107,7 +113,7 @@ def preprocess_sent_pairs(sent_pairs, word_embedding):
     returns: pair of numpy 3-D arrays of floats - each array as in `preprocess_sents` return value
     """
     sents = flatten_sent_pairs(sent_pairs)
-    sents = preprocess_sents(sents, word_embedding)
+    sents = preprocess_sents(sents, word_embedding, rand)
 
     first_sents = sents[0::2]
     second_sents = sents[1::2]

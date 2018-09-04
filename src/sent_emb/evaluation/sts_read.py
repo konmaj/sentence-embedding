@@ -4,6 +4,8 @@ from sent_emb.algorithms.path_utility import DATASETS_DIR
 from sent_emb.evaluation.preprocessing import PreprocessingStanford
 from sent_emb.evaluation.model import DataSet, flatten_sent_pairs, SentPair, zip_sent_pairs_with_gs
 
+from nltk.corpus import brown
+
 
 STS12_TRAIN_NAMES = ['MSRpar', 'MSRvid', 'SMTeuroparl']
 
@@ -36,6 +38,14 @@ class STS(DataSet):
                 for sent in sents:
                     for word in sent:
                         sts_words.add(word)
+
+            # raw_sents = [' '.join(sent) for sent in brown.sents()]
+            # sents = tokens(self.tokenizer, raw_sents)
+            #
+            # for sent in sents:
+            #     for word in sent:
+            #         sts_words.add(word)
+
             self._word_set_value = sts_words
 
         return self._word_set_value
