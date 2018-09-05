@@ -16,7 +16,7 @@ BATCH_SIZE = 2**9  # Batch size for training.
 def emb_loss(y_true, y_pred):
     pos = K.sum(K.square(y_true * (1.-y_pred)), axis=-1) / (1 + K.sum(y_true, axis=-1))
     neg = K.sum(K.square((1.-y_true) * y_pred), axis=-1) / (1 + K.sum(1.-y_true, axis=-1))
-    return (3*pos+neg)/4
+    return (2*pos+neg)/3
 
 
 def define_models(word_emb_dim, latent_dim, words, embeddings):
@@ -24,10 +24,10 @@ def define_models(word_emb_dim, latent_dim, words, embeddings):
     # encoder_inputs = [Input(shape=(None, word_emb_dim)) for _ in range(2)]
     encoder_inputs = Input(shape=(None, word_emb_dim))
     encoder_mask = Masking()
-    # encoder_bot = GRU(latent_dim, return_sequences=True, recurrent_regularizer=l1_l2(0.00, 0.001))
-    encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.001))
+    encoder_bot = GRU(latent_dim, return_sequences=True, recurrent_regularizer=l1_l2(0.00, 0.00))
+    encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.00))
 
-    encoder_outputs, state_h   = encoder((encoder_mask(encoder_inputs)))
+    encoder_outputs, state_h   = encoder(encoder_bot(encoder_mask(encoder_inputs)))
     # _,               state_h_2 = encoder(encoder_mask(encoder_inputs[1]))
     # state_h_2 = Lambda(lambda  x: K.l2_normalize(x,axis=1))(state_h_2)
 
@@ -50,7 +50,7 @@ def define_models(word_emb_dim, latent_dim, words, embeddings):
 
     # Surprisingly, linear activation with mean_squared_error loss work best
     decoder_bow = Dense(len(words), activation='linear',
-                        kernel_regularizer=l1_l2(0.00, 0.001),
+                        kernel_regularizer=l1_l2(0.00, 0.000),
                         # trainable=False,
                         name='BOW')(encoder_outputs)
 
@@ -151,15 +151,15 @@ class Autoencoder(Seq2Seq):
                            force_load=self.force_load)
 
         self.complete_model.compile(optimizer='rmsprop',
-                                    loss='mean_squared_error'
-                                    # loss=emb_loss,
+                                    # loss='mean_squared_error'
+                                    loss=emb_loss,
                                     # loss_weights=[1., 2., 1.]
                                     )
 
 
     def improve_weights(self, sent_pairs, epochs, **kwargs):
         # print(sent_pairs[:5])
-        sent_pairs.sort(key=lambda s: len(s.sent1))
+        # sent_pairs.sort(key=lambda s: len(s.sent1))
         # print(sent_pairs[:5])
 
         sent_pairs_normal = [SentPairWithGs(gs.sent1, gs.sent2, gs.gs) for gs in sent_pairs]
