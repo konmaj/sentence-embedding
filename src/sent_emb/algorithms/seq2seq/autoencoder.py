@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda
+from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda, Bidirectional
 from keras.regularizers import l1_l2
 from keras import backend as K
 
@@ -13,7 +13,7 @@ from sent_emb.evaluation.model import SentPairWithGs
 BATCH_SIZE = 2**9  # Batch size for training.
 
 
-def emb_loss(y_true, y_pred):
+def precision_loss(y_true, y_pred):
     pos = K.sum(K.square(y_true * (1.-y_pred)), axis=-1) / (1 + K.sum(y_true, axis=-1))
     neg = K.sum(K.square((1.-y_true) * y_pred), axis=-1) / (1 + K.sum(1.-y_true, axis=-1))
     return (2*pos+neg)/3
@@ -24,17 +24,29 @@ def define_models(word_emb_dim, latent_dim, words, embeddings):
     # encoder_inputs = [Input(shape=(None, word_emb_dim)) for _ in range(2)]
     encoder_inputs = Input(shape=(None, word_emb_dim))
     encoder_mask = Masking()
-    encoder_bot = GRU(latent_dim, return_sequences=True, recurrent_regularizer=l1_l2(0.00, 0.00))
-    encoder = GRU(latent_dim, return_state=True, recurrent_regularizer=l1_l2(0.00, 0.00))
+    encoder_bot1 = Bidirectional(GRU(500, return_sequences=True,
+                                     # activation='relu',
+                                     # recurrent_activation='relu',
+                                     recurrent_regularizer=l1_l2(0.00, 0.00)))
+    encoder_bot2 = GRU(500, return_sequences=True,
+                       # activation='relu',
+                       # recurrent_activation='relu',
+                       recurrent_regularizer=l1_l2(0.00, 0.00))
+    encoder = GRU(latent_dim, return_state=True,
+                  # activation='relu',
+                  # recurrent_activation='relu',
+                  recurrent_regularizer=l1_l2(0.00, 0.00))
 
-    encoder_outputs, state_h   = encoder(encoder_bot(encoder_mask(encoder_inputs)))
+    encoder_outputs, state_h   = encoder((encoder_bot1(encoder_mask(encoder_inputs))))
     # _,               state_h_2 = encoder(encoder_mask(encoder_inputs[1]))
     # state_h_2 = Lambda(lambda  x: K.l2_normalize(x,axis=1))(state_h_2)
 
     # We discard `encoder_outputs` and only keep the states.
-    encoder_states = [state_h]
+    embedding = [state_h]
+    # embedding = Dense(500, activation='relu')(encoder_outputs)
+    # embedding = Dense(latent_dim, activation='linear')(embedding)
     # encoder_model = Model(encoder_inputs[0], encoder_states)
-    encoder_model = Model(encoder_inputs, encoder_states)
+    encoder_model = Model(encoder_inputs, embedding)
 
 
     # # Set up the decoder, using `encoder_states` as initial state.
@@ -152,7 +164,7 @@ class Autoencoder(Seq2Seq):
 
         self.complete_model.compile(optimizer='rmsprop',
                                     # loss='mean_squared_error'
-                                    loss=emb_loss,
+                                    loss=precision_loss,
                                     # loss_weights=[1., 2., 1.]
                                     )
 
