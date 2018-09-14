@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda, Bidirectional
+from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda, Bidirectional, Concatenate
 from keras.regularizers import l1_l2
 from keras import backend as K
 
@@ -16,28 +16,32 @@ BATCH_SIZE = 2**9  # Batch size for training.
 def precision_loss(y_true, y_pred):
     pos = K.sum(K.square(y_true * (1.-y_pred)), axis=-1) / (1 + K.sum(y_true, axis=-1))
     neg = K.sum(K.square((1.-y_true) * y_pred), axis=-1) / (1 + K.sum(1.-y_true, axis=-1))
-    return (2*pos+neg)/3
+    return (pos+neg)/2
 
 
 def define_models(word_emb_dim, latent_dim, words, embeddings):
     # Define the encoder
     # encoder_inputs = [Input(shape=(None, word_emb_dim)) for _ in range(2)]
     encoder_inputs = Input(shape=(None, word_emb_dim))
-    encoder_mask = Masking()
-    encoder_bot1 = Bidirectional(GRU(500, return_sequences=True,
-                                     # activation='relu',
+    encoder_mask = Masking()(encoder_inputs)
+    encoder = Bidirectional(GRU(500, return_sequences=True,
+                                     activation='relu',
                                      # recurrent_activation='relu',
-                                     recurrent_regularizer=l1_l2(0.00, 0.00)))
-    encoder_bot2 = GRU(500, return_sequences=True,
-                       # activation='relu',
-                       # recurrent_activation='relu',
-                       recurrent_regularizer=l1_l2(0.00, 0.00))
-    encoder = GRU(latent_dim, return_state=True,
+                                     recurrent_regularizer=l1_l2(0.00, 0.00)))(encoder_mask)
+    # encoder = Concatenate()([encoder, encoder_mask])
+    # encoder = Dense(1000, activation='relu')(encoder)
+    # encoder = Dense(800, activation='relu')(encoder)
+    # encoder = Dense(500, activation='relu')(encoder)
+    # encoder = Concatenate()([encoder, encoder_mask])
+    # encoder = GRU(500, return_sequences=True,
+    #                    recurrent_regularizer=l1_l2(0.00, 0.00))(encoder)
+
+    encoder_out = GRU(latent_dim, return_state=True,
                   # activation='relu',
                   # recurrent_activation='relu',
                   recurrent_regularizer=l1_l2(0.00, 0.00))
 
-    encoder_outputs, state_h   = encoder((encoder_bot1(encoder_mask(encoder_inputs))))
+    encoder_outputs, state_h   = encoder_out(encoder)
     # _,               state_h_2 = encoder(encoder_mask(encoder_inputs[1]))
     # state_h_2 = Lambda(lambda  x: K.l2_normalize(x,axis=1))(state_h_2)
 
