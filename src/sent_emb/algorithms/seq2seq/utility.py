@@ -161,7 +161,7 @@ def read_corpus(tokenizer):
     nltk.download('webtext')
     nltk.download('reuters')
     # bnc = BNCCorpusReader(root="../../sentence-embedding/resources/other/2554/download/Texts",
-    #                              fileids=r'[A-K]/\w*/\w*\.xml')
+    #                              fileids=r'A/\w*/\w*\.xml')
 
     sent_pairs = []
 
@@ -228,7 +228,7 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
     # print(sent_pairs[0])
     if add_corpus:
         print('Reading additional corpus...')
-        fname = 'corp_1.dat'
+        fname = 'corp_5.dat'
         try:
             with open(fname, 'rb') as f:
                 corpus = pickle.load(f)
@@ -239,10 +239,13 @@ def improve_model(algorithm, tokenizer, epochs=1, eval_interval=None, add_corpus
         sent_pairs = corpus
     print('...done.')
 
+    print('sentence count:', len(sent_pairs))
+    # sent_pairs = sent_pairs[:2*10**5]
+
     if eval_interval is None:
         algorithm.improve_weights(sent_pairs, epochs)
     else:
-        years_to_eval = [12, 15]
+        years_to_eval = [12, 16]
         # years_to_eval = [12, 13, 14, 15, 16]
 
         completed_epochs = 0

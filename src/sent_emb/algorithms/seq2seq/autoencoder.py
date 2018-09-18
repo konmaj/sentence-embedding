@@ -1,8 +1,9 @@
 import numpy as np
 
 from keras import Input, Model
-from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda, Bidirectional, Concatenate
+from keras.layers import GRU, Dense, Masking, LSTM, Subtract, Lambda, Bidirectional, Concatenate, BatchNormalization
 from keras.regularizers import l1_l2
+from keras.optimizers import RMSprop
 from keras import backend as K
 
 from sent_emb.algorithms.glove_utility import GloVe, GloVeSmall
@@ -46,11 +47,11 @@ def define_models(word_emb_dim, latent_dim, words, embeddings):
     # state_h_2 = Lambda(lambda  x: K.l2_normalize(x,axis=1))(state_h_2)
 
     # We discard `encoder_outputs` and only keep the states.
-    embedding = [state_h]
+    encoder_outputs = BatchNormalization()(encoder_outputs)
     # embedding = Dense(500, activation='relu')(encoder_outputs)
     # embedding = Dense(latent_dim, activation='linear')(embedding)
     # encoder_model = Model(encoder_inputs[0], encoder_states)
-    encoder_model = Model(encoder_inputs, embedding)
+    encoder_model = Model(encoder_inputs, encoder_outputs)
 
 
     # # Set up the decoder, using `encoder_states` as initial state.
@@ -76,8 +77,8 @@ def define_models(word_emb_dim, latent_dim, words, embeddings):
     #                      name='prev')(encoder_outputs)
     #
     #
-    # decoder_next = Dense(words, activation='linear',
-    #                      kernel_regularizer=l1_l2(0.00, 0.001),
+    # decoder_next = Dense(len(words), activation='linear',
+    #                      kernel_regularizer=l1_l2(0.00, 0.00),
     #                      name='next')(encoder_outputs)
 
 
@@ -181,7 +182,7 @@ class Autoencoder(Seq2Seq):
         sent_pairs_normal = [SentPairWithGs(gs.sent1, gs.sent2, gs.gs) for gs in sent_pairs]
         first_sents_vec, second_sents_vec = preprocess_sent_pairs(sent_pairs_normal, self.word_embedding, rand=0.00)
         first_sents  = [' '.join(gs.sent1) for gs in sent_pairs]
-        # second_sents = [' '.join(gs.sent2[0]) for gs in sent_pairs]
+        # second_sents = [' '.join(gs.sent2) for gs in sent_pairs]
         # third_sents  = [' '.join(gs.sent2[1]) for gs in sent_pairs]
 
         # only for STS data
@@ -196,7 +197,7 @@ class Autoencoder(Seq2Seq):
             print("...done")
 
         bow_target_data = self.vectorizer.transform(first_sents).todense()
-        # prev_target_data = self.vectorizer.transform(second_sents).todense()
+        # next_target_data = self.vectorizer.transform(second_sents).todense()
         # next_target_data = self.vectorizer.transform(third_sents).todense()
         # next_emb_data = self.encoder_model.predict(x=[second_sents_vec], batch_size=BATCH_SIZE)
         next_emb_diff_data = np.zeros((sents_vec.shape[0], sents_vec.shape[2]))
