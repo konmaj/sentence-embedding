@@ -167,7 +167,7 @@ class Autoencoder(Seq2Seq):
                            words=words, embeddings=self.word_embedding,
                            force_load=self.force_load)
 
-        self.complete_model.compile(optimizer='rmsprop',
+        self.complete_model.compile(optimizer='adam',
                                     # loss='mean_squared_error'
                                     loss=precision_loss,
                                     # loss_weights=[1., 2., 1.]
